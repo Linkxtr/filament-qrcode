@@ -49,7 +49,7 @@ trait HasQrInteractions
         if ($this->downloadFilename !== null) {
             $evaluated = $this->evaluate($this->downloadFilename);
 
-            return is_string($evaluated) ? $evaluated : (is_scalar($evaluated) || $evaluated instanceof Stringable ? (string) $evaluated : 'qr-code');
+            return is_scalar($evaluated) || $evaluated instanceof Stringable ? (string) $evaluated : 'qr-code';
         }
 
         $record = $this->getRecord();
@@ -61,7 +61,7 @@ trait HasQrInteractions
             $key = 'code';
         }
 
-        $keyString = is_string($key) ? $key : (is_scalar($key) || $key instanceof Stringable ? (string) $key : 'code');
+        $keyString = is_scalar($key) || $key instanceof Stringable ? $key : 'code';
 
         return "qr-{$keyString}";
     }
@@ -88,15 +88,11 @@ trait HasQrInteractions
     public function getPreviewSize(): int
     {
         $evaluated = $this->evaluate($this->previewSize);
-        if (is_int($evaluated)) {
-            return $evaluated;
-        }
-
         if (is_numeric($evaluated)) {
             return (int) $evaluated;
         }
 
-        $configSize = config('filament-qr.preview.render_size', 320);
+        $configSize = config('filament-qr.preview.render_size');
 
         return is_numeric($configSize) ? (int) $configSize : 320;
     }
@@ -111,10 +107,6 @@ trait HasQrInteractions
     public function getPreviewHeading(): string
     {
         $evaluated = $this->evaluate($this->previewHeading);
-        if (is_string($evaluated)) {
-            return $evaluated;
-        }
-
         if (is_scalar($evaluated) || $evaluated instanceof Stringable) {
             return (string) $evaluated;
         }
@@ -144,10 +136,6 @@ trait HasQrInteractions
     public function getCopyMessage(): string
     {
         $evaluated = $this->evaluate($this->copyMessage);
-        if (is_string($evaluated)) {
-            return $evaluated;
-        }
-
         if (is_scalar($evaluated) || $evaluated instanceof Stringable) {
             return (string) $evaluated;
         }

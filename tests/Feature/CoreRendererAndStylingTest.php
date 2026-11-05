@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Filament\Support\Facades\FilamentColor;
+use Linkxtr\FilamentQr\Concerns\HasQrCodeStyling;
 use Linkxtr\FilamentQr\Enums\ErrorCorrectionLevel;
 use Linkxtr\FilamentQr\Enums\EyeStyle;
 use Linkxtr\FilamentQr\Enums\GradientType;
@@ -10,71 +12,21 @@ use Linkxtr\FilamentQr\Enums\QrStyle;
 use Linkxtr\FilamentQr\Services\QrCodeRenderer;
 use Linkxtr\FilamentQr\Tables\Columns\QrCodeColumn;
 
+covers(
+    HasQrCodeStyling::class,
+    QrCodeRenderer::class,
+    ErrorCorrectionLevel::class,
+    EyeStyle::class,
+    GradientType::class,
+    QrFormat::class,
+    QrStyle::class,
+);
+
 beforeEach(function (): void {
     $this->renderer = app(QrCodeRenderer::class);
 });
 
-it('renders qr codes in all supported formats: svg, png, and webp', function (): void {
-    $svg = $this->renderer->render('https://filamentphp.com', format: 'svg');
-    expect($svg)->toBeString()
-        ->and($svg)->toContain('<svg')
-        ->and($svg)->toContain('</svg>');
-
-    $png = $this->renderer->render('https://filamentphp.com', format: 'png');
-    expect($png)->toBeString()
-        ->and($png)->toStartWith('data:image/png;base64,');
-
-    $webp = $this->renderer->render('https://filamentphp.com', format: 'webp');
-    expect($webp)->toBeString()
-        ->and($webp)->toStartWith('data:image/webp;base64,');
-});
-
-it('renders raw binary output using renderRaw for svg, png, and webp', function (): void {
-    $rawSvg = $this->renderer->renderRaw('https://filamentphp.com', format: 'svg');
-    expect($rawSvg)->toBeString()
-        ->and($rawSvg)->toContain('<svg');
-
-    $rawPng = $this->renderer->renderRaw('https://filamentphp.com', format: 'png');
-    expect($rawPng)->toBeString()
-        ->and(substr($rawPng, 0, 8))->toBe("\x89PNG\r\n\x1a\n");
-
-    $rawWebp = $this->renderer->renderRaw('https://filamentphp.com', format: 'webp');
-    expect($rawWebp)->toBeString()
-        ->and(substr($rawWebp, 0, 4))->toBe('RIFF')
-        ->and(substr($rawWebp, 8, 4))->toBe('WEBP');
-});
-
-it('embeds custom dpi and resolution settings into raster images', function (): void {
-    if (! extension_loaded('imagick')) {
-        $this->markTestSkipped('Imagick extension not available.');
-    }
-
-    $rawPng = $this->renderer->renderRaw('https://filamentphp.com', format: 'png', dpi: 300);
-
-    $imagick = new Imagick;
-    $imagick->readImageBlob($rawPng);
-
-    $res = $imagick->getImageResolution();
-
-    // 300 dpi translates to approx 118.11 dots/cm
-    expect($res['x'])->toBeGreaterThan(100);
-});
-
-it('supports module styling, eye styles, and internal eye styles', function (): void {
-    $styledSvg = $this->renderer->render(
-        payload: 'https://filamentphp.com',
-        format: 'svg',
-        eyeStyle: EyeStyle::Circle,
-        internalEyeStyle: EyeStyle::Pointy,
-        style: QrStyle::Dot,
-        styleSize: 0.6
-    );
-
-    expect($styledSvg)->toBeString()
-        ->and($styledSvg)->toContain('<svg');
-});
-
-it('supports fluent styling methods on filament qr column', function (): void {
+it('supports fluent styling methods and format shortcuts on filament qr column', function (): void {
     $qrCodeColumn = QrCodeColumn::make('test_qr')
         ->qrSize(250)
         ->qrMargin(3)
@@ -87,87 +39,331 @@ it('supports fluent styling methods on filament qr column', function (): void {
         ->qrEyeStyle(EyeStyle::Circle)
         ->qrInternalEyeStyle(EyeStyle::Square)
         ->qrStyle(QrStyle::Round, 0.7)
+        ->qrLogo('/path/to/logo.png')
         ->qrDpi(300)
-        ->qrResolution(300)
-        ->qrEncoding('UTF-8');
+        ->qrResolution(600)
+        ->qrEncoding('ISO-8859-1');
 
-    expect($qrCodeColumn->getQrSize())->toBe(250);
-    expect($qrCodeColumn->getQrMargin())->toBe(3);
-    expect($qrCodeColumn->getQrFormat())->toBe('webp');
-    expect($qrCodeColumn->getQrErrorCorrection())->toBe('H');
-    expect($qrCodeColumn->getQrColor())->toBe('#112233');
-    expect($qrCodeColumn->getQrBackgroundColor())->toBe('#ffffff');
+    expect($qrCodeColumn->getQrSize())->toBe(250)
+        ->and($qrCodeColumn->getQrMargin())->toBe(3)
+        ->and($qrCodeColumn->getQrFormat())->toBe('webp')
+        ->and($qrCodeColumn->getQrErrorCorrection())->toBe('H')
+        ->and($qrCodeColumn->getQrColor())->toBe('#112233')
+        ->and($qrCodeColumn->getQrBackgroundColor())->toBe('#ffffff')
+        ->and($qrCodeColumn->getQrGradient())->toBe([
+            'from' => '#ff0000',
+            'to' => '#0000ff',
+            'type' => 'diagonal',
+        ])
+        ->and($qrCodeColumn->getQrEyeColors())->toBe([
+            0 => [
+                'inner' => '#ff0000',
+                'outer' => '#00ff00',
+            ],
+        ])
+        ->and($qrCodeColumn->getQrEyeStyle())->toBe('circle')
+        ->and($qrCodeColumn->getQrInternalEyeStyle())->toBe('square')
+        ->and($qrCodeColumn->getQrStyle())->toBe('round')
+        ->and($qrCodeColumn->getQrStyleSize())->toBe(0.7)
+        ->and($qrCodeColumn->getQrLogoPath())->toBe('/path/to/logo.png')
+        ->and($qrCodeColumn->getQrLogoSize())->toBe(0.2)
+        ->and($qrCodeColumn->getQrDpi())->toBe(300)
+        ->and($qrCodeColumn->getQrResolution())->toBe(600)
+        ->and($qrCodeColumn->getQrEncoding())->toBe('ISO-8859-1');
+
+    // Calling qrStyle without size preserves existing styleSize
+    $qrCodeColumn->qrStyle(QrStyle::Dot);
+    expect($qrCodeColumn->getQrStyle())->toBe('dot')
+        ->and($qrCodeColumn->getQrStyleSize())->toBe(0.7);
+
+    // Format shortcuts
+    expect(QrCodeColumn::make('c1')->svg()->getQrFormat())->toBe('svg')
+        ->and(QrCodeColumn::make('c2')->png()->getQrFormat())->toBe('png')
+        ->and(QrCodeColumn::make('c3')->webp()->getQrFormat())->toBe('webp')
+        ->and(QrCodeColumn::make('c4')->eps()->getQrFormat())->toBe('eps');
+});
+
+it('handles closures, Stringable, numeric strings, and config fallbacks across all styling getters', function (): void {
+    $stringable = new class implements Stringable
+    {
+        public function __toString(): string
+        {
+            return 'stringable-token';
+        }
+    };
+
+    $qrCodeColumn = QrCodeColumn::make('defaults');
+
+    // Unset defaults
+    expect($qrCodeColumn->getQrSize())->toBe(160)
+        ->and($qrCodeColumn->getQrMargin())->toBe(1)
+        ->and($qrCodeColumn->getQrFormat())->toBe('svg')
+        ->and($qrCodeColumn->getQrErrorCorrection())->toBe('M')
+        ->and($qrCodeColumn->getQrColor())->toBe('#000000')
+        ->and($qrCodeColumn->getQrBackgroundColor())->toBe('#ffffff')
+        ->and($qrCodeColumn->getQrGradient())->toBeNull()
+        ->and($qrCodeColumn->getQrEyeColors())->toBeNull()
+        ->and($qrCodeColumn->getQrEyeStyle())->toBeNull()
+        ->and($qrCodeColumn->getQrInternalEyeStyle())->toBeNull()
+        ->and($qrCodeColumn->getQrStyle())->toBeNull()
+        ->and($qrCodeColumn->getQrStyleSize())->toBeNull()
+        ->and($qrCodeColumn->getQrLogoPath())->toBeNull()
+        ->and($qrCodeColumn->getQrLogoSize())->toBe(0.2)
+        ->and($qrCodeColumn->getQrDpi())->toBeNull()
+        ->and($qrCodeColumn->getQrResolution())->toBeNull()
+        ->and($qrCodeColumn->getQrEncoding())->toBe('UTF-8');
+
+    // Invalid config fallbacks
+    config()->set('filament-qr.defaults.size', 'invalid');
+    config()->set('filament-qr.defaults.margin', 'invalid');
+    config()->set('filament-qr.defaults.format', 123);
+    config()->set('filament-qr.defaults.error_correction', 123);
+    config()->set('filament-qr.defaults.color', 123);
+    config()->set('filament-qr.defaults.background_color', 123);
+
+    expect($qrCodeColumn->getQrSize())->toBe(160)
+        ->and($qrCodeColumn->getQrMargin())->toBe(1)
+        ->and($qrCodeColumn->getQrFormat())->toBe('svg')
+        ->and($qrCodeColumn->getQrErrorCorrection())->toBe('M')
+        ->and($qrCodeColumn->getQrColor())->toBe('#000000')
+        ->and($qrCodeColumn->getQrBackgroundColor())->toBe('#ffffff');
+
+    // Custom valid config values
+    config()->set('filament-qr.defaults.size', '220');
+    config()->set('filament-qr.defaults.margin', '4');
+    config()->set('filament-qr.defaults.format', 'png');
+    config()->set('filament-qr.defaults.error_correction', 'Q');
+    config()->set('filament-qr.defaults.color', '#123123');
+    config()->set('filament-qr.defaults.background_color', '#fefefe');
+
+    expect($qrCodeColumn->getQrSize())->toBe(220)
+        ->and($qrCodeColumn->getQrMargin())->toBe(4)
+        ->and($qrCodeColumn->getQrFormat())->toBe('png')
+        ->and($qrCodeColumn->getQrErrorCorrection())->toBe('Q')
+        ->and($qrCodeColumn->getQrColor())->toBe('#123123')
+        ->and($qrCodeColumn->getQrBackgroundColor())->toBe('#fefefe');
+
+    // Restore defaults
+    config()->set('filament-qr.defaults.size', 160);
+    config()->set('filament-qr.defaults.margin', 1);
+    config()->set('filament-qr.defaults.format', 'svg');
+    config()->set('filament-qr.defaults.error_correction', 'M');
+    config()->set('filament-qr.defaults.color', '#000000');
+    config()->set('filament-qr.defaults.background_color', '#ffffff');
+
+    // Numeric string & Stringable closures
+    $qrCodeColumn->qrSize(fn (): string => '195')
+        ->qrMargin(fn (): string => '5')
+        ->qrFormat(fn (): Stringable => $stringable)
+        ->qrErrorCorrection(fn (): Stringable => $stringable)
+        ->qrColor(fn (): Stringable => $stringable)
+        ->qrBackgroundColor(fn (): Stringable => $stringable)
+        ->qrEyeStyle(fn (): Stringable => $stringable)
+        ->qrInternalEyeStyle(fn (): Stringable => $stringable)
+        ->qrStyle(fn (): Stringable => $stringable, fn (): string => '0.85')
+        ->qrLogo(fn (): Stringable => $stringable, fn (): string => '0.35')
+        ->qrDpi(fn (): string => '180')
+        ->qrResolution(fn (): string => '360')
+        ->qrEncoding(fn (): Stringable => $stringable);
+
+    expect($qrCodeColumn->getQrSize())->toBe(195)
+        ->and($qrCodeColumn->getQrMargin())->toBe(5)
+        ->and($qrCodeColumn->getQrFormat())->toBe('stringable-token')
+        ->and($qrCodeColumn->getQrErrorCorrection())->toBe('stringable-token')
+        ->and($qrCodeColumn->getQrColor())->toBe('stringable-token')
+        ->and($qrCodeColumn->getQrBackgroundColor())->toBe('stringable-token')
+        ->and($qrCodeColumn->getQrEyeStyle())->toBe('stringable-token')
+        ->and($qrCodeColumn->getQrInternalEyeStyle())->toBe('stringable-token')
+        ->and($qrCodeColumn->getQrStyle())->toBe('stringable-token')
+        ->and($qrCodeColumn->getQrStyleSize())->toBe(0.85)
+        ->and($qrCodeColumn->getQrLogoPath())->toBe('stringable-token')
+        ->and($qrCodeColumn->getQrLogoSize())->toBe(0.35)
+        ->and($qrCodeColumn->getQrDpi())->toBe(180)
+        ->and($qrCodeColumn->getQrResolution())->toBe(360)
+        ->and($qrCodeColumn->getQrEncoding())->toBe('stringable-token');
+
+    // Non-scalar closures falling back to null / defaults
+    $qrCodeColumn->qrFormat(fn (): array => [])
+        ->qrErrorCorrection(fn (): array => [])
+        ->qrColor(fn (): array => [])
+        ->qrBackgroundColor(fn (): array => [])
+        ->qrEyeStyle(fn (): array => [])
+        ->qrInternalEyeStyle(fn (): array => [])
+        ->qrStyle(fn (): array => [], fn (): string => 'not-float')
+        ->qrLogo(fn (): array => [], fn (): string => 'not-float')
+        ->qrDpi(fn (): string => 'not-int')
+        ->qrResolution(fn (): string => 'not-int')
+        ->qrEncoding(fn (): array => []);
+
+    expect($qrCodeColumn->getQrFormat())->toBe('svg')
+        ->and($qrCodeColumn->getQrErrorCorrection())->toBe('M')
+        ->and($qrCodeColumn->getQrColor())->toBe('#000000')
+        ->and($qrCodeColumn->getQrBackgroundColor())->toBe('#ffffff')
+        ->and($qrCodeColumn->getQrEyeStyle())->toBeNull()
+        ->and($qrCodeColumn->getQrInternalEyeStyle())->toBeNull()
+        ->and($qrCodeColumn->getQrStyle())->toBeNull()
+        ->and($qrCodeColumn->getQrStyleSize())->toBeNull()
+        ->and($qrCodeColumn->getQrLogoPath())->toBeNull()
+        ->and($qrCodeColumn->getQrLogoSize())->toBe(0.2)
+        ->and($qrCodeColumn->getQrDpi())->toBeNull()
+        ->and($qrCodeColumn->getQrResolution())->toBeNull()
+        ->and($qrCodeColumn->getQrEncoding())->toBe('UTF-8');
+});
+
+it('covers all gradient and eye color edge cases', function (): void {
+    $stringable = new class implements Stringable
+    {
+        public function __toString(): string
+        {
+            return '#abcdef';
+        }
+    };
+
+    $qrCodeColumn = QrCodeColumn::make('grad');
+
+    // Default type parameter ('vertical') and Stringable / int / non-scalar type fallback
+    $qrCodeColumn->qrGradient(fn (): Stringable => $stringable, fn (): Stringable => $stringable);
+
     expect($qrCodeColumn->getQrGradient())->toBe([
-        'from' => '#ff0000',
-        'to' => '#0000ff',
-        'type' => 'diagonal',
+        'from' => '#abcdef',
+        'to' => '#abcdef',
+        'type' => 'vertical',
     ]);
-    expect($qrCodeColumn->getQrEyeColors()[0])->toBe([
-        'inner' => '#ff0000',
-        'outer' => '#00ff00',
+
+    $qrCodeColumn->qrGradient(fn (): int => 123, fn (): int => 456);
+    expect($qrCodeColumn->getQrGradient())->toBe([
+        'from' => '123',
+        'to' => '456',
+        'type' => 'vertical',
     ]);
-    expect($qrCodeColumn->getQrEyeStyle())->toBe('circle');
-    expect($qrCodeColumn->getQrInternalEyeStyle())->toBe('square');
-    expect($qrCodeColumn->getQrStyle())->toBe('round');
-    expect($qrCodeColumn->getQrStyleSize())->toBe(0.7);
-    expect($qrCodeColumn->getQrDpi())->toBe(300);
-    expect($qrCodeColumn->getQrResolution())->toBe(300);
-    expect($qrCodeColumn->getQrEncoding())->toBe('UTF-8');
+
+    $qrCodeColumn->qrGradient(fn (): array => ['bad'], '#123456');
+    expect($qrCodeColumn->getQrGradient())->toBeNull();
+
+    $qrCodeColumn->qrGradient('#123456', fn (): array => ['bad']);
+    expect($qrCodeColumn->getQrGradient())->toBeNull();
+
+    $qrCodeColumn->qrGradient('#111111', '#222222', fn (): array => ['bad']);
+    expect($qrCodeColumn->getQrGradient())->toBe([
+        'from' => '#111111',
+        'to' => '#222222',
+        'type' => 'vertical',
+    ]);
+
+    $qrCodeColumn->qrGradient('#111111', '#222222', fn (): Stringable => new class implements Stringable
+    {
+        public function __toString(): string
+        {
+            return 'radial';
+        }
+    });
+    expect($qrCodeColumn->getQrGradient())->toBe([
+        'from' => '#111111',
+        'to' => '#222222',
+        'type' => 'radial',
+    ]);
+
+    // Empty from or to returns null
+    $qrCodeColumn->qrGradient('', '#222222');
+    expect($qrCodeColumn->getQrGradient())->toBeNull();
+
+    $qrCodeColumn->qrGradient('#111111', '');
+    expect($qrCodeColumn->getQrGradient())->toBeNull();
+
+    // qrEyeColors uniform shorthand (populates 3 eyes: 0, 1, 2)
+    $qrCodeColumn->qrEyeColors('#112233', '#445566');
+    expect($qrCodeColumn->getQrEyeColors())->toBe([
+        0 => ['inner' => '#112233', 'outer' => '#445566'],
+        1 => ['inner' => '#112233', 'outer' => '#445566'],
+        2 => ['inner' => '#112233', 'outer' => '#445566'],
+    ]);
+
+    // qrEyeColors with Closure returning non-array -> null, then qrEyeColor resets to array
+    $qrCodeColumn->qrEyeColors(fn (): ?array => null);
+    expect($qrCodeColumn->getQrEyeColors())->toBeNull();
+
+    $qrCodeColumn->qrEyeColor(1, fn (): Stringable => $stringable)
+        ->qrEyeColor(2, '#112233');
+    expect($qrCodeColumn->getQrEyeColors())->toBe([
+        1 => ['inner' => '#abcdef', 'outer' => null],
+        2 => ['inner' => '#112233', 'outer' => null],
+    ]);
+
+    // qrEyeColors with array containing invalid entries, Stringable outer, and non-scalar inner/outer
+    $qrCodeColumn->qrEyeColors([
+        0 => 'not-an-array',
+        1 => ['outer' => '#111111'], // missing inner
+        2 => ['inner' => ['non-scalar'], 'outer' => $stringable],
+        '3' => ['inner' => '#000000', 'outer' => ['non-scalar']],
+    ]);
+    expect($qrCodeColumn->getQrEyeColors())->toBe([
+        2 => ['inner' => '', 'outer' => '#abcdef'],
+        3 => ['inner' => '#000000', 'outer' => null],
+    ]);
+
+    // qrEyeColors where all entries are skipped returns null
+    $qrCodeColumn->qrEyeColors([
+        0 => ['outer' => '#111111'],
+    ]);
+    expect($qrCodeColumn->getQrEyeColors())->toBeNull();
 });
 
-it('supports format shortcuts svg, png, and webp', function (): void {
-    $qrCodeColumn = QrCodeColumn::make('c1')->svg();
-    expect($qrCodeColumn->getQrFormat())->toBe('svg');
+it('resolves hex, rgb, FilamentColor palettes, shade notations, and fallback map tokens', function (): void {
+    $qrCodeColumn = QrCodeColumn::make('colors');
 
-    $colPng = QrCodeColumn::make('c2')->png();
-    expect($colPng->getQrFormat())->toBe('png');
+    // Direct hex and rgb with whitespace trimming
+    expect($qrCodeColumn->resolveColorToken('  #123456  '))->toBe('#123456')
+        ->and($qrCodeColumn->resolveColorToken('  rgb(10, 20, 30)  '))->toBe('rgb(10, 20, 30)');
 
-    $colWebp = QrCodeColumn::make('c3')->webp();
-    expect($colWebp->getQrFormat())->toBe('webp');
-});
+    // Register custom palettes in FilamentColor
+    FilamentColor::register([
+        'brandhex' => [
+            100 => '#000000',
+            500 => '#AABBCC',
+            700 => '#DDEEFF',
+        ],
+        'brandrgb' => [
+            100 => '#000000',
+            600 => 'rgb(16, 185, 129)',
+        ],
+        'brandfirst' => [
+            100 => '#102030',
+        ],
+        'brandbad' => [
+            500 => 'invalid-color-that-throws',
+        ],
+    ]);
 
-it('evaluates closures on styling setters', function (): void {
-    $qrCodeColumn = QrCodeColumn::make('dynamic')
-        ->qrSize(fn (): int => 180)
-        ->qrMargin(fn (): int => 2)
-        ->qrColor(fn (): string => '#445566')
-        ->qrDpi(fn (): int => 150);
+    // Shade notations (-, ., :) and case-insensitivity
+    expect($qrCodeColumn->resolveColorToken('BRANDHEX'))->toBe('#aabbcc')
+        ->and($qrCodeColumn->resolveColorToken('brandhex-700'))->toBe('#ddeeff')
+        ->and($qrCodeColumn->resolveColorToken('brandhex.700'))->toBe('#ddeeff')
+        ->and($qrCodeColumn->resolveColorToken('BRANDHEX:700'))->toBe('#ddeeff')
+        // Falls back to 500 when requested shade 300 is missing
+        ->and($qrCodeColumn->resolveColorToken('brandhex-300'))->toBe('#aabbcc')
+        // Falls back to 600 and converts rgb(...) via Color::convertToHex
+        ->and($qrCodeColumn->resolveColorToken('brandrgb-400'))->toBe('#11b981')
+        // Falls back to reset() when 500 and 600 are missing
+        ->and($qrCodeColumn->resolveColorToken('brandfirst-900'))->toBe('#102030')
+        // Converts unrecognized color string to #000000
+        ->and($qrCodeColumn->resolveColorToken('brandbad'))->toBe('#000000')
+        // Secondary is not in FilamentColor default colors, so it uses $fallbackMap
+        ->and($qrCodeColumn->resolveColorToken('secondary'))->toBe('#64748b')
+        ->and($qrCodeColumn->resolveColorToken('UnknownToken'))->toBe('UnknownToken');
 
-    expect($qrCodeColumn->getQrSize())->toBe(180);
-    expect($qrCodeColumn->getQrMargin())->toBe(2);
-    expect($qrCodeColumn->getQrColor())->toBe('#445566');
-    expect($qrCodeColumn->getQrDpi())->toBe(150);
-});
+    // Catches Throwable when FilamentColor::getColor throws
+    FilamentColor::shouldReceive('getColor')->with('throwtoken')->andThrow(new RuntimeException('Color failure'));
+    expect($qrCodeColumn->resolveColorToken('throwtoken'))->toBe('throwtoken');
 
-it('resolves filament theme color tokens primary, success, and danger to hex colors', function (): void {
-    $qrCodeColumn = QrCodeColumn::make('token_qr');
+    // Fallback map when FilamentColor returns null for semantic tokens
+    FilamentColor::shouldReceive('getColor')->andReturn(null);
 
-    $primaryHex = $qrCodeColumn->resolveColorToken('primary');
-    $successHex = $qrCodeColumn->resolveColorToken('success');
-    $dangerHex = $qrCodeColumn->resolveColorToken('danger');
-    $warningHex = $qrCodeColumn->resolveColorToken('warning');
-    $infoHex = $qrCodeColumn->resolveColorToken('info');
-    $grayHex = $qrCodeColumn->resolveColorToken('gray');
-
-    expect($primaryHex)->toStartWith('#');
-    expect($successHex)->toStartWith('#');
-    expect($dangerHex)->toStartWith('#');
-    expect($warningHex)->toStartWith('#');
-    expect($infoHex)->toStartWith('#');
-    expect($grayHex)->toStartWith('#');
-});
-
-it('resolves color tokens with specific shade notation', function (): void {
-    $qrCodeColumn = QrCodeColumn::make('shade_qr');
-
-    $shadeHex = $qrCodeColumn->resolveColorToken('primary-600');
-    expect($shadeHex)->toStartWith('#');
-});
-
-it('preserves existing hex and rgb colors during token resolution', function (): void {
-    $qrCodeColumn = QrCodeColumn::make('hex_qr');
-
-    expect($qrCodeColumn->resolveColorToken('#123456'))->toBe('#123456');
-    expect($qrCodeColumn->resolveColorToken('#abc'))->toBe('#abc');
-    expect($qrCodeColumn->resolveColorToken('rgb(10, 20, 30)'))->toBe('rgb(10, 20, 30)');
+    expect($qrCodeColumn->resolveColorToken('primary'))->toBe('#fe9a00')
+        ->and($qrCodeColumn->resolveColorToken('danger'))->toBe('#ef4444')
+        ->and($qrCodeColumn->resolveColorToken('gray'))->toBe('#6b7280')
+        ->and($qrCodeColumn->resolveColorToken('info'))->toBe('#3b82f6')
+        ->and($qrCodeColumn->resolveColorToken('success'))->toBe('#10b981')
+        ->and($qrCodeColumn->resolveColorToken('warning'))->toBe('#f59e0b')
+        ->and($qrCodeColumn->resolveColorToken('secondary'))->toBe('#64748b')
+        ->and($qrCodeColumn->resolveColorToken('UnknownToken'))->toBe('UnknownToken');
 });

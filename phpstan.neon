@@ -3,5 +3,5 @@ parameters:
   paths:
     - src
   phpVersion:
-    min: 80200
-    max: 80508
+    min: 80400
+    max: 80600

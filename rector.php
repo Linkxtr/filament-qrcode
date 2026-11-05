@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use Pest\Rector\Set\PestSetList;
 use Rector\Config\RectorConfig;
+use Rector\Set\ValueObject\SetList;
 
 return RectorConfig::configure()
     ->withPaths([
@@ -10,24 +12,16 @@ return RectorConfig::configure()
         __DIR__.'/src',
         __DIR__.'/tests',
     ])
-    ->withPreparedSets(
-        deadCode: true,
-        codeQuality: true,
-        codingStyle: true,
-        typeDeclarations: true,
-        typeDeclarationDocblocks: true,
-        privatization: true,
-        naming: true,
-        instanceOf: true,
-        earlyReturn: true,
-        carbon: true,
-        rectorPreset: true,
-        phpunitCodeQuality: true,
-        doctrineCodeQuality: true,
-        symfonyCodeQuality: true,
-        symfonyConfigs: true
-    )
-    ->withPhpSets(php82: true)
+    ->withSets([
+        SetList::DEAD_CODE,
+        SetList::CODE_QUALITY,
+        SetList::CODING_STYLE,
+        SetList::TYPE_DECLARATION,
+        SetList::PRIVATIZATION,
+        SetList::CARBON,
+        PestSetList::CODING_STYLE,
+    ])
+    ->withPhpSets(php84: true)
     ->withAttributesSets()
     ->withImportNames(removeUnusedImports: true)
     ->withTreatClassesAsFinal()

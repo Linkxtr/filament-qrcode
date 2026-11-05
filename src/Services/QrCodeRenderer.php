@@ -58,7 +58,7 @@ final class QrCodeRenderer
 
         if ($eyeColors) {
             foreach ($eyeColors as $index => $colors) {
-                $builder = $builder->eyeColor((int) $index, $colors['inner'], $colors['outer'] ?? null);
+                $builder = $builder->eyeColor($index, $colors['inner'], $colors['outer'] ?? null);
             }
         }
 
@@ -88,7 +88,7 @@ final class QrCodeRenderer
         $output = (string) $builder->generate($payload);
 
         if (($dpi || $resolution) && in_array($format, ['png', 'webp'], true) && extension_loaded('imagick')) {
-            $dpiVal = (float) ($dpi ?? $resolution);
+            $dpiVal = $dpi ?? $resolution;
             try {
                 $imagick = new Imagick;
                 $imagick->readImageBlob($output);

@@ -122,7 +122,7 @@ final class DownloadQrBulkAction extends BulkAction
     public function getFilename(): string
     {
         $evaluated = $this->evaluate($this->zipFilename);
-        $filename = is_string($evaluated) ? $evaluated : (is_scalar($evaluated) || $evaluated instanceof Stringable ? (string) $evaluated : 'qrcodes.zip');
+        $filename = is_scalar($evaluated) || $evaluated instanceof Stringable ? (string) $evaluated : 'qrcodes.zip';
         if ($filename === '') {
             $filename = 'qrcodes.zip';
         }
@@ -161,7 +161,7 @@ final class DownloadQrBulkAction extends BulkAction
                 'format' => $this->getQrFormat(),
             ]);
 
-            return is_string($evaluated) ? $evaluated : (is_scalar($evaluated) || $evaluated instanceof Stringable ? (string) $evaluated : "qrcode_{$index}");
+            return is_scalar($evaluated) || $evaluated instanceof Stringable ? (string) $evaluated : "qrcode_{$index}";
         }
 
         if ($record instanceof Model) {
@@ -217,7 +217,7 @@ final class DownloadQrBulkAction extends BulkAction
         }
 
         $index = 1;
-        $count = 0;
+        $hasEntries = false;
         foreach ($records as $record) {
             $payload = $this->getQrPayload($record);
             if (empty($payload)) {
@@ -250,12 +250,10 @@ final class DownloadQrBulkAction extends BulkAction
             $filename = $this->resolveEntryFilename($record, $index - 1, $format);
             $zipArchive->addFromString($filename, $output);
             ++$index;
-            ++$count;
+            $hasEntries = true;
         }
 
-        $zipArchive->close();
-
-        if ($count === 0) {
+        if (! $hasEntries) {
             if (file_exists($tempFile)) {
                 @unlink($tempFile);
             }
@@ -263,14 +261,11 @@ final class DownloadQrBulkAction extends BulkAction
             return null;
         }
 
-        return response()->streamDownload(function () use ($tempFile): void {
-            $stream = fopen($tempFile, 'rb');
-            if (is_resource($stream)) {
-                fpassthru($stream);
-                fclose($stream);
-            }
+        $zipArchive->close();
 
+        return response()->streamDownload(function () use ($tempFile): void {
             if (file_exists($tempFile)) {
+                readfile($tempFile);
                 @unlink($tempFile);
             }
         }, $this->getFilename(), [

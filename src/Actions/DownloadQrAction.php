@@ -22,8 +22,6 @@ final class DownloadQrAction extends Action
 
     private ?Closure $payloadResolver = null;
 
-    private mixed $customRecord = null;
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -32,7 +30,7 @@ final class DownloadQrAction extends Action
         $this->icon('heroicon-o-arrow-down-tray');
 
         $this->action(function (): ?StreamedResponse {
-            $record = $this->customRecord ?? $this->getRecord();
+            $record = $this->getRecord();
             $payload = $this->resolvePayloadForRecord($record);
 
             if (empty($payload)) {
@@ -122,6 +120,6 @@ final class DownloadQrAction extends Action
     {
         $resolved = $this->evaluate($this->filename);
 
-        return is_string($resolved) ? $resolved : (is_scalar($resolved) || $resolved instanceof Stringable ? (string) $resolved : 'qrcode');
+        return is_scalar($resolved) || $resolved instanceof Stringable ? (string) $resolved : 'qrcode';
     }
 }

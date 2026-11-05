@@ -28,7 +28,7 @@ trait HasPayloadFormatters
             $sVal = $this->evaluateFormattedValue($ssid, $raw) ?? $raw;
             $pVal = $this->evaluateFormattedValue($password, $raw);
             $tVal = $this->evaluateFormattedValue($encryption, $raw);
-            $hVal = (bool) $this->evaluateFormattedValue($hidden, $raw);
+            $hVal = $this->evaluateFormattedValue($hidden, $raw);
 
             $s = $this->escapeWifiValue($this->formatString($sVal));
             $t = strtoupper($this->formatString($tVal, 'WPA'));
@@ -142,7 +142,7 @@ trait HasPayloadFormatters
                 $params['r'] = $this->formatString($ret);
             }
 
-            $query = $params !== [] ? '?'.http_build_query($params, '', '&', PHP_QUERY_RFC3986) : '';
+            $query = $params !== [] ? '?'.http_build_query($params, arg_separator: '&', encoding_type: PHP_QUERY_RFC3986) : '';
 
             return 'bitcoin:'.$addr.$query;
         });
@@ -166,7 +166,7 @@ trait HasPayloadFormatters
             $addr = trim($this->formatString($this->evaluateFormattedValue($address, $raw) ?? $raw));
             $amt = $this->evaluateFormattedValue($amount, $raw);
 
-            $query = ($amt !== null && $amt !== '') ? '?'.http_build_query(['amount' => $this->formatString($amt)], '', '&', PHP_QUERY_RFC3986) : '';
+            $query = ($amt !== null && $amt !== '') ? '?'.http_build_query(['amount' => $this->formatString($amt)], arg_separator: '&', encoding_type: PHP_QUERY_RFC3986) : '';
 
             return 'ethereum:'.$addr.$query;
         });
@@ -202,8 +202,7 @@ trait HasPayloadFormatters
 
             foreach ($extraParams as $k => $v) {
                 if ($v !== null && $v !== '') {
-                    $keyStr = is_string($k) ? $k : (string) $k;
-                    $params[$keyStr] = $this->formatString($v);
+                    $params[$k] = $this->formatString($v);
                 }
             }
 
@@ -446,10 +445,6 @@ trait HasPayloadFormatters
 
     protected function formatString(mixed $value, string $default = ''): string
     {
-        if (is_string($value)) {
-            return $value;
-        }
-
         if (is_scalar($value) || $value instanceof Stringable) {
             return (string) $value;
         }
@@ -459,11 +454,7 @@ trait HasPayloadFormatters
 
     protected function evaluateFormattedValue(mixed $value, mixed $raw): mixed
     {
-        if ($value instanceof Closure) {
-            return $this->evaluate($value, ['state' => $raw, 'raw' => $raw, 'record' => $raw]);
-        }
-
-        return $value;
+        return $this->evaluate($value, ['state' => $raw, 'raw' => $raw, 'record' => $raw]);
     }
 
     protected function escapeWifiValue(string $value): string

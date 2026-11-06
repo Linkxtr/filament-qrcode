@@ -16,19 +16,23 @@ it('formats wifi payload with WPA, WEP, NOPASS, NONE, hidden flag, empty passwor
     $colNopass = QrCodeColumn::make('wifi2')
         ->asWifi('OpenCafe', null, 'NOPASS', false);
     expect($colNopass->getQrPayload())
-        ->toBe('WIFI:S:OpenCafe;T:NOPASS;H:false;;');
+        ->toBe('WIFI:S:OpenCafe;T:NOPASS;;');
 
     $colNone = QrCodeColumn::make('wifi3')
         ->asWifi('GuestNet', '', 'none');
     expect($colNone->getQrPayload())
-        ->toBe('WIFI:S:GuestNet;T:NOPASS;H:false;;');
+        ->toBe('WIFI:S:GuestNet;T:NOPASS;;');
 
-    // Empty password with WPA encryption produces P:;
     $colEmptyPassWpa = QrCodeColumn::make('wifi4')
         ->state('StateSSID')
         ->asWifi(null, '', fn (): array => ['invalid-encryption']);
     expect($colEmptyPassWpa->getQrPayload())
-        ->toBe('WIFI:S:StateSSID;T:WPA;P:;H:false;;');
+        ->toBe('WIFI:S:StateSSID;T:NOPASS;;');
+
+    $colHiddenInt = QrCodeColumn::make('wifi5')
+        ->asWifi('IntHiddenNet', 'pass', 'WPA', fn (): int => 1);
+    expect($colHiddenInt->getQrPayload())
+        ->toBe('WIFI:S:IntHiddenNet;T:WPA;P:pass;H:true;;');
 });
 
 it('formats url, email, sms, and phone number payloads across all branches', function (): void {
@@ -45,7 +49,7 @@ it('formats url, email, sms, and phone number payloads across all branches', fun
         bcc: 'bcc@example.com'
     );
     expect($qrCodeColumn->getQrPayload())
-        ->toBe('mailto:support@example.com?subject=Hello&body=Body+text&cc=cc%40example.com&bcc=bcc%40example.com');
+        ->toBe('mailto:support@example.com?subject=Hello&body=Body%20text&cc=cc%40example.com&bcc=bcc%40example.com');
 
     $emailEmptyOptionals = QrCodeColumn::make('e2')
         ->state('only@example.com')
@@ -53,8 +57,8 @@ it('formats url, email, sms, and phone number payloads across all branches', fun
     expect($emailEmptyOptionals->getQrPayload())->toBe('mailto:only@example.com');
 
     // SMS with message, empty message, and state fallback
-    expect(QrCodeColumn::make('s1')->asSms('+15550001', 'Code 123')->getQrPayload())->toBe('smsto:+15550001:Code 123')
-        ->and(QrCodeColumn::make('s2')->state('+15550002')->asSms(null, '')->getQrPayload())->toBe('smsto:+15550002');
+    expect(QrCodeColumn::make('s1')->asSms('+15550001', 'Code 123')->getQrPayload())->toBe('sms:+15550001?body=Code%20123')
+        ->and(QrCodeColumn::make('s2')->state('+15550002')->asSms(null, '')->getQrPayload())->toBe('sms:+15550002');
 
     // Phone number
     expect(QrCodeColumn::make('p1')->asPhoneNumber('+1234567890')->getQrPayload())->toBe('tel:+1234567890')
@@ -79,6 +83,21 @@ it('formats bitcoin, btc alias, ethereum, eth alias, and arbitrary crypto URI pa
         ->asBitcoin(null, '', '', '', '');
     expect($btcEmptyOpts->getQrPayload())->toBe('bitcoin:1BoatSLRHtKNngkdXEeobR76b53lettpyT');
 
+    // Bitcoin whitespace trim when amount is null
+    expect(QrCodeColumn::make('btc_trim')->asBitcoin('  1BoatSLRHtKNngkdXEeobR76b53lettpyT  ')->getQrPayload())
+        ->toBe('bitcoin:1BoatSLRHtKNngkdXEeobR76b53lettpyT');
+
+    // Bitcoin without amount but with label, message, and returnAddress
+    $btcNoAmount = QrCodeColumn::make('btc_no_amount')
+        ->asBitcoin(
+            address: '1BoatSLRHtKNngkdXEeobR76b53lettpyT',
+            label: 'Donation',
+            message: 'Support Us',
+            returnAddress: 'https://example.com/return'
+        );
+    expect($btcNoAmount->getQrPayload())
+        ->toBe('bitcoin:1BoatSLRHtKNngkdXEeobR76b53lettpyT?label=Donation&message=Support%20Us&r=https%3A%2F%2Fexample.com%2Freturn');
+
     // asBtc alias forwards all 5 parameters
     $btcAlias = QrCodeColumn::make('btc3')->asBtc(
         address: 'bc1qxyz',
@@ -94,7 +113,9 @@ it('formats bitcoin, btc alias, ethereum, eth alias, and arbitrary crypto URI pa
     expect(QrCodeColumn::make('eth1')->state('  0xabc  ')->asEthereum(null, '')->getQrPayload())
         ->toBe('ethereum:0xabc')
         ->and(QrCodeColumn::make('eth2')->asEth('  0xdef  ', 2.5)->getQrPayload())
-        ->toBe('ethereum:0xdef?amount=2.5');
+        ->toBe('ethereum:0xdef?amount=2.5')
+        ->and(QrCodeColumn::make('eth3')->asEthereum('0x123', '   ')->getQrPayload())
+        ->toBe('ethereum:0x123');
 
     // asCrypto with uppercase type, whitespace address, empty/valid extra params, and non-array extra closure
     $sol = QrCodeColumn::make('sol')->asCrypto(
@@ -117,8 +138,8 @@ it('formats bitcoin, btc alias, ethereum, eth alias, and arbitrary crypto URI pa
     expect($cryptoFallback->getQrPayload())->toBe('monero:44Affq5kSiGBoZ');
 });
 
-it('formats vCard 4.0 and 3.0 contacts via individual arguments and associative array keys', function (): void {
-    // Full vCard 4.0 with individual parameters and CRLF/CR/LF/special character escaping
+it('formats vCard contacts via individual arguments and associative array keys', function (): void {
+    // Full vCard with individual parameters and CRLF/CR/LF/special character escaping
     $qrCodeColumn = QrCodeColumn::make('vc4')->asVCard(
         name: "Jane;Doe,Jr\\Sr\r\nLine2\rLine3",
         phone: '+1-555-0100',
@@ -142,15 +163,15 @@ it('formats vCard 4.0 and 3.0 contacts via individual arguments and associative 
 
     expect($qrCodeColumn->getQrPayload())->toBe(implode("\r\n", [
         'BEGIN:VCARD',
-        'VERSION:4.0',
+        'VERSION:3.0',
         'FN:Jane\\;Doe\\,Jr\\\\Sr\\nLine2\\nLine3',
         'N:Doe;Jane;;;',
         'ORG:Acme\\;Corp',
         'TITLE:Lead\\,Eng',
         'ROLE:Architecture',
-        'EMAIL:jane@example.com',
-        'EMAIL;type=WORK:work@example.com',
-        'EMAIL;type=HOME:home@example.com',
+        'EMAIL;type=INTERNET:jane@example.com',
+        'EMAIL;type=INTERNET,WORK:work@example.com',
+        'EMAIL;type=INTERNET,HOME:home@example.com',
         'TEL:+1-555-0100',
         'TEL;type=WORK:+1-555-0101',
         'TEL;type=HOME:+1-555-0102',
@@ -163,7 +184,7 @@ it('formats vCard 4.0 and 3.0 contacts via individual arguments and associative 
         '',
     ]));
 
-    // vCard 3.0 with only firstName (lastName null) and empty strings for optional fields
+    // vCard with only firstName (lastName null) and empty strings for optional fields
     $vCard3FirstOnly = QrCodeColumn::make('vc3a')
         ->state('Fallback Name')
         ->asVCard(
@@ -195,14 +216,14 @@ it('formats vCard 4.0 and 3.0 contacts via individual arguments and associative 
         '',
     ]));
 
-    // vCard with only lastName (firstName null) and null version fallback to 4.0
+    // vCard with only lastName (firstName null)
     $vCardLastOnly = QrCodeColumn::make('vc3b')->asVCard(
         name: 'Last Only',
         email: '',
         lastName: 'OnlyLast',
         version: null
     );
-    expect($vCardLastOnly->getQrPayload())->toContain("VERSION:4.0\r\nFN:Last Only\r\nN:OnlyLast;;;;\r\nEND:VCARD\r\n");
+    expect($vCardLastOnly->getQrPayload())->toBe("BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Last Only\r\nN:OnlyLast;;;;\r\nEND:VCARD\r\n");
 
     // Associative array mode: primary keys
     $vCardArrPrimary = QrCodeColumn::make('vc_arr1')->asVCard([
@@ -234,8 +255,8 @@ it('formats vCard 4.0 and 3.0 contacts via individual arguments and associative 
         'TITLE:CTO',
         'ROLE:Exec',
         'EMAIL;type=INTERNET:john@primary.com',
-        'EMAIL;type=WORK:jw@primary.com',
-        'EMAIL;type=HOME:jh@primary.com',
+        'EMAIL;type=INTERNET,WORK:jw@primary.com',
+        'EMAIL;type=INTERNET,HOME:jh@primary.com',
         'TEL:111',
         'TEL;type=WORK:222',
         'TEL;type=HOME:333',
@@ -265,13 +286,13 @@ it('formats vCard 4.0 and 3.0 contacts via individual arguments and associative 
     ]);
     expect($vCardArrAlt->getQrPayload())->toBe(implode("\r\n", [
         'BEGIN:VCARD',
-        'VERSION:4.0',
+        'VERSION:3.0',
         'FN:Alt Name',
         'N:AltLast;AltFirst;;;',
         'ORG:Alt Org',
         'TITLE:Alt Title',
-        'EMAIL;type=WORK:aw@alt.com',
-        'EMAIL;type=HOME:ah@alt.com',
+        'EMAIL;type=INTERNET,WORK:aw@alt.com',
+        'EMAIL;type=INTERNET,HOME:ah@alt.com',
         'TEL;type=WORK:555',
         'TEL;type=HOME:666',
         'TEL;type=CELL:777',
@@ -285,7 +306,7 @@ it('formats vCard 4.0 and 3.0 contacts via individual arguments and associative 
     $vCardArrRawFallback = QrCodeColumn::make('vc_arr3')
         ->state('Raw Fallback Name')
         ->asVCard([]);
-    expect($vCardArrRawFallback->getQrPayload())->toBe("BEGIN:VCARD\r\nVERSION:4.0\r\nFN:Raw Fallback Name\r\nEND:VCARD\r\n");
+    expect($vCardArrRawFallback->getQrPayload())->toBe("BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Raw Fallback Name\r\nEND:VCARD\r\n");
 });
 
 it('formats mecard and geo payloads across individual parameters, array input, and closures', function (): void {
@@ -299,7 +320,7 @@ it('formats mecard and geo payloads across individual parameters, array input, a
         note: 'VIP:Client,1'
     );
     expect($qrCodeColumn->getQrPayload())
-        ->toBe('MECARD:N:Alex\\;Green\\:Jr\\,1\\\\2;TEL:+100200300;EMAIL:alex@example.com;URL:https\\://alex.example.com;ADR:123 Street\\;Apt 4;NOTE:VIP\\:Client\\,1;;');
+        ->toBe('MECARD:N:Alex\\;Green\\:Jr,1\\\\2;TEL:+100200300;EMAIL:alex@example.com;NOTE:VIP\\:Client\\,1;ADR:123 Street\\;Apt 4;URL:https://alex.example.com;;');
 
     // MeCard with state fallback and empty optional strings
     $meCardEmptyOpts = QrCodeColumn::make('mc2')
@@ -317,7 +338,16 @@ it('formats mecard and geo payloads across individual parameters, array input, a
         'note' => 'Array note',
     ]);
     expect($meCardArray->getQrPayload())
-        ->toBe('MECARD:N:Array User;TEL:999;EMAIL:arr@example.com;URL:https\\://arr.dev;ADR:Cairo;NOTE:Array note;;');
+        ->toBe('MECARD:N:Array User;TEL:999;EMAIL:arr@example.com;NOTE:Array note;ADR:Cairo;URL:https://arr.dev;;');
+
+    // MeCard with associative array using alternate keys (n, tel, adr)
+    $meCardAltKeys = QrCodeColumn::make('mc3_alt')->asMeCard([
+        'n' => 'Alt User',
+        'tel' => '888',
+        'adr' => 'Giza',
+    ]);
+    expect($meCardAltKeys->getQrPayload())
+        ->toBe('MECARD:N:Alt User;TEL:888;ADR:Giza;;');
 
     // MeCard with associative array without name (falls back to raw state)
     $meCardArrayFallback = QrCodeColumn::make('mc4')
@@ -327,7 +357,7 @@ it('formats mecard and geo payloads across individual parameters, array input, a
 
     // Geo with name, without name, and with empty string name
     expect(QrCodeColumn::make('g1')->asGeo(30.0444, 31.2357, 'Cairo Tower')->getQrPayload())
-        ->toBe('geo:30.0444,31.2357?q=Cairo+Tower')
+        ->toBe('geo:30.0444,31.2357?name=Cairo%20Tower')
         ->and(QrCodeColumn::make('g2')->asGeo('30.0444', '31.2357')->getQrPayload())
         ->toBe('geo:30.0444,31.2357')
         ->and(QrCodeColumn::make('g3')->asGeo(30.0444, 31.2357, '')->getQrPayload())

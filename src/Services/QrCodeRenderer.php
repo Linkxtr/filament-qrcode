@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Linkxtr\FilamentQr\Services;
 
 use Imagick;
-use Linkxtr\FilamentQr\Enums\EyeStyle;
-use Linkxtr\FilamentQr\Enums\QrStyle;
+use Linkxtr\QrCode\Enums\ErrorCorrectionLevel;
+use Linkxtr\QrCode\Enums\EyeStyle;
+use Linkxtr\QrCode\Enums\Format;
+use Linkxtr\QrCode\Enums\GradientType;
+use Linkxtr\QrCode\Enums\Style;
 use Linkxtr\QrCode\Facades\QrCode;
 use Linkxtr\QrCode\ValueObjects\Colors\Rgb;
 use Throwable;
@@ -16,22 +19,22 @@ final class QrCodeRenderer
     /**
      * Render the given payload as raw output (raw SVG string or binary image).
      *
-     * @param  array{from: string, to: string, type?: string}|null  $gradient
+     * @param  array{from: string, to: string, type?: GradientType|string}|null  $gradient
      * @param  array<int, array{inner: string, outer?: string|null}>|null  $eyeColors
      */
     public function renderRaw(
         string $payload,
         int $size = 160,
         int $margin = 1,
-        string $format = 'svg',
-        string $errorCorrection = 'M',
+        Format|string $format = 'svg',
+        ErrorCorrectionLevel|string $errorCorrection = 'M',
         string $color = '#000000',
         string $backgroundColor = '#ffffff',
         ?array $gradient = null,
         ?array $eyeColors = null,
         EyeStyle|string|null $eyeStyle = null,
         EyeStyle|string|null $internalEyeStyle = null,
-        QrStyle|string|null $style = null,
+        Style|string|null $style = null,
         ?float $styleSize = null,
         ?string $logoPath = null,
         float $logoSize = 0.2,
@@ -73,7 +76,7 @@ final class QrCodeRenderer
         }
 
         if ($style) {
-            $styleVal = $style instanceof QrStyle ? $style->value : $style;
+            $styleVal = $style instanceof Style ? $style->value : $style;
             $builder = $builder->style($styleVal, $styleSize);
         }
 
@@ -87,7 +90,9 @@ final class QrCodeRenderer
 
         $output = (string) $builder->generate($payload);
 
-        if (($dpi || $resolution) && in_array($format, ['png', 'webp'], true) && extension_loaded('imagick')) {
+        $formatVal = $format instanceof Format ? $format->value : $format;
+
+        if (($dpi || $resolution) && in_array($formatVal, ['png', 'webp'], true) && extension_loaded('imagick')) {
             $dpiVal = $dpi ?? $resolution;
             try {
                 $imagick = new Imagick;
@@ -106,22 +111,22 @@ final class QrCodeRenderer
     /**
      * Render the given payload as an inline SVG string or base64 data URI.
      *
-     * @param  array{from: string, to: string, type?: string}|null  $gradient
+     * @param  array{from: string, to: string, type?: GradientType|string}|null  $gradient
      * @param  array<int, array{inner: string, outer?: string|null}>|null  $eyeColors
      */
     public function render(
         string $payload,
         int $size = 160,
         int $margin = 1,
-        string $format = 'svg',
-        string $errorCorrection = 'M',
+        Format|string $format = 'svg',
+        ErrorCorrectionLevel|string $errorCorrection = 'M',
         string $color = '#000000',
         string $backgroundColor = '#ffffff',
         ?array $gradient = null,
         ?array $eyeColors = null,
         EyeStyle|string|null $eyeStyle = null,
         EyeStyle|string|null $internalEyeStyle = null,
-        QrStyle|string|null $style = null,
+        Style|string|null $style = null,
         ?float $styleSize = null,
         ?string $logoPath = null,
         float $logoSize = 0.2,
@@ -150,32 +155,34 @@ final class QrCodeRenderer
             encoding: $encoding
         );
 
-        if ($format === 'svg') {
+        $formatVal = $format instanceof Format ? $format->value : $format;
+
+        if ($formatVal === 'svg') {
             return $raw;
         }
 
-        return 'data:image/'.$format.';base64,'.base64_encode($raw);
+        return 'data:image/'.$formatVal.';base64,'.base64_encode($raw);
     }
 
     /**
      * Render as a data URI regardless of format.
      *
-     * @param  array{from: string, to: string, type?: string}|null  $gradient
+     * @param  array{from: string, to: string, type?: GradientType|string}|null  $gradient
      * @param  array<int, array{inner: string, outer?: string|null}>|null  $eyeColors
      */
     public function renderDataUri(
         string $payload,
         int $size = 160,
         int $margin = 1,
-        string $format = 'svg',
-        string $errorCorrection = 'M',
+        Format|string $format = 'svg',
+        ErrorCorrectionLevel|string $errorCorrection = 'M',
         string $color = '#000000',
         string $backgroundColor = '#ffffff',
         ?array $gradient = null,
         ?array $eyeColors = null,
         EyeStyle|string|null $eyeStyle = null,
         EyeStyle|string|null $internalEyeStyle = null,
-        QrStyle|string|null $style = null,
+        Style|string|null $style = null,
         ?float $styleSize = null,
         ?string $logoPath = null,
         float $logoSize = 0.2,
@@ -204,7 +211,8 @@ final class QrCodeRenderer
             encoding: $encoding
         );
 
-        $mime = $format === 'svg' ? 'image/svg+xml' : 'image/'.$format;
+        $formatVal = $format instanceof Format ? $format->value : $format;
+        $mime = $formatVal === 'svg' ? 'image/svg+xml' : 'image/'.$formatVal;
 
         return 'data:'.$mime.';base64,'.base64_encode($raw);
     }

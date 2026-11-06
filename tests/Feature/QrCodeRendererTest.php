@@ -2,9 +2,12 @@
 
 declare(strict_types=1);
 
-use Linkxtr\FilamentQr\Enums\EyeStyle;
-use Linkxtr\FilamentQr\Enums\QrStyle;
 use Linkxtr\FilamentQr\Services\QrCodeRenderer;
+use Linkxtr\QrCode\Enums\ErrorCorrectionLevel;
+use Linkxtr\QrCode\Enums\EyeStyle;
+use Linkxtr\QrCode\Enums\Format;
+use Linkxtr\QrCode\Enums\GradientType;
+use Linkxtr\QrCode\Enums\Style;
 use Linkxtr\QrCode\Facades\QrCode;
 
 covers(QrCodeRenderer::class);
@@ -136,9 +139,9 @@ it('applies eye colors, eye styles, internal eye styles, module styles, encoding
                 0 => ['inner' => '#ff0000', 'outer' => '#00ff00'],
                 '1' => ['inner' => '#0000ff'],
             ],
-            eyeStyle: EyeStyle::Circle,
-            internalEyeStyle: EyeStyle::Pointy,
-            style: QrStyle::Dot,
+            eyeStyle: EyeStyle::CIRCLE,
+            internalEyeStyle: EyeStyle::POINTY,
+            style: Style::DOT,
             styleSize: 0.65,
             logoPath: $logoFile,
             logoSize: 0.25,
@@ -183,8 +186,14 @@ it('forwards all arguments through render() and uses default logoSize and string
 
 it('embeds dpi and resolution fallback into png and webp images using imagick', function (): void {
     $rawPngDpi = $this->renderer->renderRaw('https://example.com', format: 'png', dpi: 300);
+    $rawPngDpiEnum = $this->renderer->renderRaw('https://example.com', format: Format::PNG, dpi: 300);
     $imagick1 = new Imagick;
     $imagick1->readImageBlob($rawPngDpi);
+
+    $imagickEnum = new Imagick;
+    $imagickEnum->readImageBlob($rawPngDpiEnum);
+
+    expect($imagickEnum->getImageResolution()['x'])->toBeGreaterThan(100);
 
     $res1 = $imagick1->getImageResolution();
 
@@ -258,4 +267,27 @@ it('converts 3-character and 6-character hex strings to rgb arrays', function ()
         ->and($this->renderer->hexToRgb('#000'))->toBe([0, 0, 0])
         ->and($this->renderer->hexToRgb('#112233'))->toBe([17, 34, 51])
         ->and($this->renderer->hexToRgb('ffffff'))->toBe([255, 255, 255]);
+});
+
+it('accepts Format, ErrorCorrectionLevel, and GradientType enums in render and renderDataUri', function (): void {
+    $svg = $this->renderer->render('https://example.com', format: Format::SVG, errorCorrection: ErrorCorrectionLevel::H);
+    expect($svg)->toBeString()->toContain('<svg');
+
+    $svgDataUri = $this->renderer->renderDataUri('https://example.com', format: Format::SVG);
+    expect($svgDataUri)->toStartWith('data:image/svg+xml;base64,');
+
+    $pngRender = $this->renderer->render('https://example.com', format: Format::PNG);
+    expect($pngRender)->toStartWith('data:image/png;base64,');
+
+    $pngDataUri = $this->renderer->renderDataUri(
+        payload: 'https://example.com',
+        format: Format::PNG,
+        errorCorrection: ErrorCorrectionLevel::L,
+        gradient: [
+            'from' => '#ff0000',
+            'to' => '#0000ff',
+            'type' => GradientType::HORIZONTAL,
+        ]
+    );
+    expect($pngDataUri)->toStartWith('data:image/png;base64,');
 });

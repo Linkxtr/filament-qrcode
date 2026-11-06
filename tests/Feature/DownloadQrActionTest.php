@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 use Illuminate\Database\Eloquent\Model;
 use Linkxtr\FilamentQr\Actions\DownloadQrAction;
-use Linkxtr\FilamentQr\Enums\EyeStyle;
-use Linkxtr\FilamentQr\Enums\GradientType;
-use Linkxtr\FilamentQr\Enums\QrStyle;
 use Linkxtr\FilamentQr\Tests\Fixtures\Models\Record;
+use Linkxtr\QrCode\Enums\EyeStyle;
+use Linkxtr\QrCode\Enums\GradientType;
+use Linkxtr\QrCode\Enums\Style;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 covers(DownloadQrAction::class);
@@ -134,11 +134,11 @@ it('streams download for svg, png, webp, and eps formats with full styling optio
             ->qrErrorCorrection('H')
             ->qrColor('#112233')
             ->qrBackgroundColor('#ffffff')
-            ->qrGradient('#112233', '#445566', GradientType::Vertical)
+            ->qrGradient('#112233', '#445566', GradientType::VERTICAL)
             ->qrEyeColor(0, '#112233', '#445566')
-            ->qrEyeStyle(EyeStyle::Square)
-            ->qrInternalEyeStyle(EyeStyle::Square)
-            ->qrStyle(QrStyle::Square, 0.5)
+            ->qrEyeStyle(EyeStyle::SQUARE)
+            ->qrInternalEyeStyle(EyeStyle::SQUARE)
+            ->qrStyle(Style::SQUARE, 0.5)
             ->qrEncoding('UTF-8');
 
         /** @var StreamedResponse $response */

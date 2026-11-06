@@ -50,12 +50,12 @@ it('binds qr code renderer as a singleton in the service container', function ()
 });
 
 it('merges default package configuration and loads views', function (): void {
-    expect(config('filament-qr.defaults.size'))->toBe(160)
-        ->and(config('filament-qr.defaults.margin'))->toBe(1)
-        ->and(config('filament-qr.defaults.format'))->toBe('svg')
-        ->and(config('filament-qr.defaults.error_correction'))->toBe('M')
-        ->and(config('filament-qr.defaults.color'))->toBe('#000000')
-        ->and(config('filament-qr.defaults.background_color'))->toBe('#ffffff')
+    expect(config('filament-qr.defaults.size'))->toBeNull()
+        ->and(config('filament-qr.defaults.margin'))->toBeNull()
+        ->and(config('filament-qr.defaults.format'))->toBeNull()
+        ->and(config('filament-qr.defaults.error_correction'))->toBeNull()
+        ->and(config('filament-qr.defaults.color'))->toBeNull()
+        ->and(config('filament-qr.defaults.background_color'))->toBeNull()
         ->and(config('filament-qr.preview.render_size'))->toBe(320);
 
     $hints = app('view')->getFinder()->getHints();

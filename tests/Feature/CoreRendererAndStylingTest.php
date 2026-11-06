@@ -4,22 +4,17 @@ declare(strict_types=1);
 
 use Filament\Support\Facades\FilamentColor;
 use Linkxtr\FilamentQr\Concerns\HasQrCodeStyling;
-use Linkxtr\FilamentQr\Enums\ErrorCorrectionLevel;
-use Linkxtr\FilamentQr\Enums\EyeStyle;
-use Linkxtr\FilamentQr\Enums\GradientType;
-use Linkxtr\FilamentQr\Enums\QrFormat;
-use Linkxtr\FilamentQr\Enums\QrStyle;
 use Linkxtr\FilamentQr\Services\QrCodeRenderer;
 use Linkxtr\FilamentQr\Tables\Columns\QrCodeColumn;
+use Linkxtr\QrCode\Enums\ErrorCorrectionLevel;
+use Linkxtr\QrCode\Enums\EyeStyle;
+use Linkxtr\QrCode\Enums\Format;
+use Linkxtr\QrCode\Enums\GradientType;
+use Linkxtr\QrCode\Enums\Style;
 
 covers(
     HasQrCodeStyling::class,
     QrCodeRenderer::class,
-    ErrorCorrectionLevel::class,
-    EyeStyle::class,
-    GradientType::class,
-    QrFormat::class,
-    QrStyle::class,
 );
 
 beforeEach(function (): void {
@@ -30,15 +25,15 @@ it('supports fluent styling methods and format shortcuts on filament qr column',
     $qrCodeColumn = QrCodeColumn::make('test_qr')
         ->qrSize(250)
         ->qrMargin(3)
-        ->qrFormat(QrFormat::Webp)
-        ->qrErrorCorrection(ErrorCorrectionLevel::High)
+        ->qrFormat(Format::WEBP)
+        ->qrErrorCorrection(ErrorCorrectionLevel::H)
         ->qrColor('#112233')
         ->qrBackgroundColor('#ffffff')
-        ->qrGradient('#ff0000', '#0000ff', GradientType::Diagonal)
+        ->qrGradient('#ff0000', '#0000ff', GradientType::DIAGONAL)
         ->qrEyeColor(0, '#ff0000', '#00ff00')
-        ->qrEyeStyle(EyeStyle::Circle)
-        ->qrInternalEyeStyle(EyeStyle::Square)
-        ->qrStyle(QrStyle::Round, 0.7)
+        ->qrEyeStyle(EyeStyle::CIRCLE)
+        ->qrInternalEyeStyle(EyeStyle::SQUARE)
+        ->qrStyle(Style::ROUND, 0.7)
         ->qrLogo('/path/to/logo.png')
         ->qrDpi(300)
         ->qrResolution(600)
@@ -72,7 +67,7 @@ it('supports fluent styling methods and format shortcuts on filament qr column',
         ->and($qrCodeColumn->getQrEncoding())->toBe('ISO-8859-1');
 
     // Calling qrStyle without size preserves existing styleSize
-    $qrCodeColumn->qrStyle(QrStyle::Dot);
+    $qrCodeColumn->qrStyle(Style::DOT);
     expect($qrCodeColumn->getQrStyle())->toBe('dot')
         ->and($qrCodeColumn->getQrStyleSize())->toBe(0.7);
 
@@ -81,6 +76,123 @@ it('supports fluent styling methods and format shortcuts on filament qr column',
         ->and(QrCodeColumn::make('c2')->png()->getQrFormat())->toBe('png')
         ->and(QrCodeColumn::make('c3')->webp()->getQrFormat())->toBe('webp')
         ->and(QrCodeColumn::make('c4')->eps()->getQrFormat())->toBe('eps');
+});
+
+it('implements environment-aware 4-tier configuration inheritance', function (): void {
+    $col = QrCodeColumn::make('tiers');
+
+    // Tier 4: Hardcoded Fallbacks (when Tier 1, Tier 2, and Tier 3 are unset or invalid)
+    config()->set('filament-qr.defaults.size');
+    config()->set('filament-qr.defaults.margin');
+    config()->set('filament-qr.defaults.format');
+    config()->set('filament-qr.defaults.error_correction');
+    config()->set('filament-qr.defaults.color');
+    config()->set('filament-qr.defaults.background_color');
+
+    config()->set('qrcode.size');
+    config()->set('qrcode.margin');
+    config()->set('qrcode.format');
+    config()->set('qrcode.error_correction');
+    config()->set('qrcode.color');
+    config()->set('qrcode.background_color');
+
+    expect($col->getQrSize())->toBe(160)
+        ->and($col->getQrMargin())->toBe(1)
+        ->and($col->getQrFormat())->toBe('svg')
+        ->and($col->getQrErrorCorrection())->toBe('M')
+        ->and($col->getQrColor())->toBe('#000000')
+        ->and($col->getQrBackgroundColor())->toBe('#ffffff');
+
+    // Tier 4 also holds when Tier 2 and Tier 3 contain invalid non-numeric/empty values
+    config()->set('filament-qr.defaults.size', 'not-a-number');
+    config()->set('filament-qr.defaults.margin', 'not-a-number');
+    config()->set('filament-qr.defaults.format', 123);
+    config()->set('filament-qr.defaults.error_correction', 123);
+    config()->set('filament-qr.defaults.color', 123);
+    config()->set('filament-qr.defaults.background_color', 123);
+
+    config()->set('qrcode.size', 'not-a-number');
+    config()->set('qrcode.margin', 'not-a-number');
+    config()->set('qrcode.format', 123);
+    config()->set('qrcode.error_correction', 123);
+    config()->set('qrcode.color', 123);
+    config()->set('qrcode.background_color', 123);
+
+    expect($col->getQrSize())->toBe(160)
+        ->and($col->getQrMargin())->toBe(1)
+        ->and($col->getQrFormat())->toBe('svg')
+        ->and($col->getQrErrorCorrection())->toBe('M')
+        ->and($col->getQrColor())->toBe('#000000')
+        ->and($col->getQrBackgroundColor())->toBe('#ffffff');
+
+    // Tier 3: config('qrcode.*') inherited when filament-qr is unset (with string numbers and whitespace fallbacks)
+    config()->set('filament-qr.defaults.size', '');
+    config()->set('filament-qr.defaults.margin', '');
+    config()->set('filament-qr.defaults.format', '');
+    config()->set('filament-qr.defaults.error_correction', '');
+    config()->set('filament-qr.defaults.color', '   ');
+    config()->set('filament-qr.defaults.background_color', '   ');
+
+    config()->set('qrcode.size', '400');
+    config()->set('qrcode.margin', '4');
+    config()->set('qrcode.format', 'webp');
+    config()->set('qrcode.error_correction', 'Q');
+    config()->set('qrcode.color', '10,20,30');
+    config()->set('qrcode.background_color', '240,240,240');
+
+    expect($col->getQrSize())->toBe(400)
+        ->and($col->getQrMargin())->toBe(4)
+        ->and($col->getQrFormat())->toBe('webp')
+        ->and($col->getQrErrorCorrection())->toBe('Q')
+        ->and($col->getQrColor())->toBe('10,20,30')
+        ->and($col->getQrBackgroundColor())->toBe('240,240,240');
+
+    // Tier 3 with empty format and error_correction falls back to Tier 4
+    config()->set('qrcode.format', '');
+    config()->set('qrcode.error_correction', '');
+    config()->set('qrcode.color', '   ');
+    config()->set('qrcode.background_color', '   ');
+    expect($col->getQrFormat())->toBe('svg')
+        ->and($col->getQrErrorCorrection())->toBe('M')
+        ->and($col->getQrColor())->toBe('#000000')
+        ->and($col->getQrBackgroundColor())->toBe('#ffffff');
+
+    // Tier 2: config('filament-qr.defaults.*') overrides config('qrcode.*')
+    config()->set('qrcode.format', 'eps');
+    config()->set('qrcode.error_correction', 'L');
+    config()->set('filament-qr.defaults.size', '220');
+    config()->set('filament-qr.defaults.margin', '2');
+    config()->set('filament-qr.defaults.format', 'png');
+    config()->set('filament-qr.defaults.error_correction', 'H');
+    config()->set('filament-qr.defaults.color', '#123456');
+    config()->set('filament-qr.defaults.background_color', '#abcdef');
+
+    expect($col->getQrSize())->toBe(220)
+        ->and($col->getQrMargin())->toBe(2)
+        ->and($col->getQrFormat())->toBe('png')
+        ->and($col->getQrErrorCorrection())->toBe('H')
+        ->and($col->getQrColor())->toBe('#123456')
+        ->and($col->getQrBackgroundColor())->toBe('#abcdef');
+
+    // Explicit whitespace strings fall back to config
+    $col->qrColor('   ')->qrBackgroundColor('   ');
+    expect($col->getQrColor())->toBe('#123456')
+        ->and($col->getQrBackgroundColor())->toBe('#abcdef');
+
+    // Tier 1: Explicit component setters override everything
+    $col->qrSize(350)
+        ->qrMargin(6)
+        ->qrFormat(Format::SVG)
+        ->qrErrorCorrection(ErrorCorrectionLevel::L)
+        ->qrColor('#998877')
+        ->qrBackgroundColor('#112233');
+
+    expect($col->getQrSize())->toBe(350)
+        ->and($col->getQrMargin())->toBe(6)
+        ->and($col->getQrFormat())->toBe('svg')
+        ->and($col->getQrErrorCorrection())->toBe('L')
+        ->and($col->getQrColor())->toBe('#998877')
+        ->and($col->getQrBackgroundColor())->toBe('#112233');
 });
 
 it('handles closures, Stringable, numeric strings, and config fallbacks across all styling getters', function (): void {
@@ -94,7 +206,21 @@ it('handles closures, Stringable, numeric strings, and config fallbacks across a
 
     $qrCodeColumn = QrCodeColumn::make('defaults');
 
-    // Unset defaults
+    // Unset defaults (uses package hardcoded fallbacks when configs are null)
+    config()->set('filament-qr.defaults.size');
+    config()->set('filament-qr.defaults.margin');
+    config()->set('filament-qr.defaults.format');
+    config()->set('filament-qr.defaults.error_correction');
+    config()->set('filament-qr.defaults.color');
+    config()->set('filament-qr.defaults.background_color');
+
+    config()->set('qrcode.size');
+    config()->set('qrcode.margin');
+    config()->set('qrcode.format');
+    config()->set('qrcode.error_correction');
+    config()->set('qrcode.color');
+    config()->set('qrcode.background_color');
+
     expect($qrCodeColumn->getQrSize())->toBe(160)
         ->and($qrCodeColumn->getQrMargin())->toBe(1)
         ->and($qrCodeColumn->getQrFormat())->toBe('svg')
@@ -112,44 +238,6 @@ it('handles closures, Stringable, numeric strings, and config fallbacks across a
         ->and($qrCodeColumn->getQrDpi())->toBeNull()
         ->and($qrCodeColumn->getQrResolution())->toBeNull()
         ->and($qrCodeColumn->getQrEncoding())->toBe('UTF-8');
-
-    // Invalid config fallbacks
-    config()->set('filament-qr.defaults.size', 'invalid');
-    config()->set('filament-qr.defaults.margin', 'invalid');
-    config()->set('filament-qr.defaults.format', 123);
-    config()->set('filament-qr.defaults.error_correction', 123);
-    config()->set('filament-qr.defaults.color', 123);
-    config()->set('filament-qr.defaults.background_color', 123);
-
-    expect($qrCodeColumn->getQrSize())->toBe(160)
-        ->and($qrCodeColumn->getQrMargin())->toBe(1)
-        ->and($qrCodeColumn->getQrFormat())->toBe('svg')
-        ->and($qrCodeColumn->getQrErrorCorrection())->toBe('M')
-        ->and($qrCodeColumn->getQrColor())->toBe('#000000')
-        ->and($qrCodeColumn->getQrBackgroundColor())->toBe('#ffffff');
-
-    // Custom valid config values
-    config()->set('filament-qr.defaults.size', '220');
-    config()->set('filament-qr.defaults.margin', '4');
-    config()->set('filament-qr.defaults.format', 'png');
-    config()->set('filament-qr.defaults.error_correction', 'Q');
-    config()->set('filament-qr.defaults.color', '#123123');
-    config()->set('filament-qr.defaults.background_color', '#fefefe');
-
-    expect($qrCodeColumn->getQrSize())->toBe(220)
-        ->and($qrCodeColumn->getQrMargin())->toBe(4)
-        ->and($qrCodeColumn->getQrFormat())->toBe('png')
-        ->and($qrCodeColumn->getQrErrorCorrection())->toBe('Q')
-        ->and($qrCodeColumn->getQrColor())->toBe('#123123')
-        ->and($qrCodeColumn->getQrBackgroundColor())->toBe('#fefefe');
-
-    // Restore defaults
-    config()->set('filament-qr.defaults.size', 160);
-    config()->set('filament-qr.defaults.margin', 1);
-    config()->set('filament-qr.defaults.format', 'svg');
-    config()->set('filament-qr.defaults.error_correction', 'M');
-    config()->set('filament-qr.defaults.color', '#000000');
-    config()->set('filament-qr.defaults.background_color', '#ffffff');
 
     // Numeric string & Stringable closures
     $qrCodeColumn->qrSize(fn (): string => '195')
@@ -277,6 +365,39 @@ it('covers all gradient and eye color edge cases', function (): void {
         1 => ['inner' => '#112233', 'outer' => '#445566'],
         2 => ['inner' => '#112233', 'outer' => '#445566'],
     ]);
+
+    // qrEyeColors uniform shorthand with closures
+    $qrCodeColumn->qrEyeColors(fn (): string => '#112233', fn (): string => '#445566');
+    expect($qrCodeColumn->getQrEyeColors())->toBe([
+        0 => ['inner' => '#112233', 'outer' => '#445566'],
+        1 => ['inner' => '#112233', 'outer' => '#445566'],
+        2 => ['inner' => '#112233', 'outer' => '#445566'],
+    ]);
+
+    // qrEyeColors uniform shorthand with single inner string and outer null
+    $qrCodeColumn->qrEyeColors('#112233');
+    expect($qrCodeColumn->getQrEyeColors())->toBe([
+        0 => ['inner' => '#112233', 'outer' => null],
+        1 => ['inner' => '#112233', 'outer' => null],
+        2 => ['inner' => '#112233', 'outer' => null],
+    ]);
+
+    // qrEyeColors with array ignores second argument
+    $qrCodeColumn->qrEyeColors([0 => ['inner' => '#aabbcc', 'outer' => null]], '#ignored');
+    expect($qrCodeColumn->getQrEyeColors())->toBe([
+        0 => ['inner' => '#aabbcc', 'outer' => null],
+    ]);
+
+    // qrEyeColors with closure returning full array
+    $qrCodeColumn->qrEyeColors(fn (): array => [0 => ['inner' => '#334455', 'outer' => '#667788']]);
+    expect($qrCodeColumn->getQrEyeColors())->toBe([
+        0 => ['inner' => '#334455', 'outer' => '#667788'],
+    ]);
+
+    // qrEyeColors with non-numeric string key casts to int index 0
+    $qrCodeColumn->qrEyeColors(['eye_zero' => ['inner' => '#556677', 'outer' => null]]);
+    $resolvedEyes = $qrCodeColumn->getQrEyeColors();
+    expect($resolvedEyes)->toBeArray()->toHaveKey(0);
 
     // qrEyeColors with Closure returning non-array -> null, then qrEyeColor resets to array
     $qrCodeColumn->qrEyeColors(fn (): ?array => null);

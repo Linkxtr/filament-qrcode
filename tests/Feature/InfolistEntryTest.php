@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 use Illuminate\Database\Eloquent\Model;
 use Linkxtr\FilamentQr\Concerns\HasQrInteractions;
-use Linkxtr\FilamentQr\Enums\EyeStyle;
-use Linkxtr\FilamentQr\Enums\GradientType;
-use Linkxtr\FilamentQr\Enums\QrStyle;
 use Linkxtr\FilamentQr\Infolists\Entries\QrCodeEntry;
 use Linkxtr\FilamentQr\Tests\Fixtures\Models\Record;
+use Linkxtr\QrCode\Enums\EyeStyle;
+use Linkxtr\QrCode\Enums\GradientType;
+use Linkxtr\QrCode\Enums\Style;
 
 covers(QrCodeEntry::class, HasQrInteractions::class);
 
@@ -190,11 +190,11 @@ it('forwards all 18 styling options to QrCodeRenderer on renderQrCode and render
             ->qrErrorCorrection('Q')
             ->qrColor('#112233')
             ->qrBackgroundColor('#abcdef')
-            ->qrGradient('#111111', '#222222', GradientType::Horizontal)
+            ->qrGradient('#111111', '#222222', GradientType::HORIZONTAL)
             ->qrEyeColor(0, '#ff0000', '#00ff00')
-            ->qrEyeStyle(EyeStyle::Circle)
-            ->qrInternalEyeStyle(EyeStyle::Pointy)
-            ->qrStyle(QrStyle::Dot, 0.8)
+            ->qrEyeStyle(EyeStyle::CIRCLE)
+            ->qrInternalEyeStyle(EyeStyle::POINTY)
+            ->qrStyle(Style::DOT, 0.8)
             ->qrLogo($logoFile, 0.25)
             ->qrDpi(144)
             ->qrResolution(288)

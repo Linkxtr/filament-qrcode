@@ -9,12 +9,12 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Linkxtr\FilamentQr\Concerns\HasQrInteractions;
-use Linkxtr\FilamentQr\Enums\ErrorCorrectionLevel;
-use Linkxtr\FilamentQr\Enums\EyeStyle;
-use Linkxtr\FilamentQr\Enums\GradientType;
-use Linkxtr\FilamentQr\Enums\QrFormat;
-use Linkxtr\FilamentQr\Enums\QrStyle;
 use Linkxtr\FilamentQr\Tables\Columns\QrCodeColumn;
+use Linkxtr\QrCode\Enums\ErrorCorrectionLevel;
+use Linkxtr\QrCode\Enums\EyeStyle;
+use Linkxtr\QrCode\Enums\Format;
+use Linkxtr\QrCode\Enums\GradientType;
+use Linkxtr\QrCode\Enums\Style;
 use Livewire\Component;
 
 covers(QrCodeColumn::class, HasQrInteractions::class);
@@ -25,8 +25,8 @@ it('can initialize qr code column with styling and payload resolution', function
         ->qrMargin(2)
         ->qrColor('#112233')
         ->qrBackgroundColor('#ffffff')
-        ->qrFormat(QrFormat::Png)
-        ->qrErrorCorrection(ErrorCorrectionLevel::High);
+        ->qrFormat(Format::PNG)
+        ->qrErrorCorrection(ErrorCorrectionLevel::H);
 
     expect($qrCodeColumn->getQrSize())->toBe(200)
         ->and($qrCodeColumn->getQrMargin())->toBe(2)
@@ -78,11 +78,11 @@ it('renders qr code with all styling options and blade view with modal preview',
         ->qrErrorCorrection('H')
         ->qrColor('#112233')
         ->qrBackgroundColor('#ffffff')
-        ->qrGradient('#112233', '#445566', GradientType::Vertical)
+        ->qrGradient('#112233', '#445566', GradientType::VERTICAL)
         ->qrEyeColor(0, '#112233', '#445566')
-        ->qrEyeStyle(EyeStyle::Circle)
-        ->qrInternalEyeStyle(EyeStyle::Square)
-        ->qrStyle(QrStyle::Round, 0.7)
+        ->qrEyeStyle(EyeStyle::CIRCLE)
+        ->qrInternalEyeStyle(EyeStyle::SQUARE)
+        ->qrStyle(Style::ROUND, 0.7)
         ->qrEncoding('UTF-8')
         ->previewable(true)
         ->downloadable(true);
@@ -98,5 +98,7 @@ it('renders qr code with all styling options and blade view with modal preview',
         ->and($html)->toContain('fi-ta-qr-code')
         ->and($html)->toContain('fi-modal')
         ->and($html)->toContain('https://filamentphp.com')
-        ->and($html)->toContain('Download QR');
+        ->and($html)->toContain('Download QR')
+        ->and($html)->toContain('x-on:click.stop.prevent')
+        ->and($html)->toContain('x-on:click.stop');
 });

@@ -6,10 +6,10 @@ use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Linkxtr\FilamentQr\Actions\DownloadQrBulkAction;
-use Linkxtr\FilamentQr\Enums\EyeStyle;
-use Linkxtr\FilamentQr\Enums\GradientType;
-use Linkxtr\FilamentQr\Enums\QrStyle;
 use Linkxtr\FilamentQr\Tests\Fixtures\Models\Record;
+use Linkxtr\QrCode\Enums\EyeStyle;
+use Linkxtr\QrCode\Enums\GradientType;
+use Linkxtr\QrCode\Enums\Style;
 use Livewire\Component;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -219,11 +219,11 @@ it('executes download qr bulk action, skips empty payloads while incrementing in
         ->qrErrorCorrection('M')
         ->qrColor('#112233')
         ->qrBackgroundColor('#ffffff')
-        ->qrGradient('#112233', '#445566', GradientType::Vertical)
+        ->qrGradient('#112233', '#445566', GradientType::VERTICAL)
         ->qrEyeColor(0, '#112233', '#445566')
-        ->qrEyeStyle(EyeStyle::Square)
-        ->qrInternalEyeStyle(EyeStyle::Square)
-        ->qrStyle(QrStyle::Square, 0.5)
+        ->qrEyeStyle(EyeStyle::SQUARE)
+        ->qrInternalEyeStyle(EyeStyle::SQUARE)
+        ->qrStyle(Style::SQUARE, 0.5)
         ->qrEncoding('UTF-8');
 
     /** @var StreamedResponse $response */

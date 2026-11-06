@@ -99,6 +99,46 @@ it('renders qr code with all styling options and blade view with modal preview',
         ->and($html)->toContain('fi-modal')
         ->and($html)->toContain('https://filamentphp.com')
         ->and($html)->toContain('Download QR')
-        ->and($html)->toContain('x-on:click.stop.prevent')
+        ->and($html)->toContain('x-on:click.stop="$dispatch(\'open-modal\'')
+        ->and($html)->toContain('x-on:click.stop');
+});
+
+it('has correct default interaction properties on QrCodeColumn', function (): void {
+    $column = QrCodeColumn::make('qr');
+
+    expect($column->isDownloadable())->toBeFalse()
+        ->and($column->isPreviewable())->toBeTrue()
+        ->and($column->isClickableToPreview())->toBeTrue()
+        ->and($column->isCopyable())->toBeTrue()
+        ->and($column->getPreviewSize())->toBe(320)
+        ->and($column->getPreviewHeading())->toBe('QR Code Preview')
+        ->and($column->getCopyMessage())->toBe('Copied to clipboard!')
+        ->and($column->getDownloadFilename())->toBe('qr-code');
+
+    $column->downloadable()->previewable(false)->copyable(false);
+    expect($column->isDownloadable())->toBeTrue()
+        ->and($column->isClickableToPreview())->toBeFalse()
+        ->and($column->isPreviewable())->toBeFalse()
+        ->and($column->isCopyable())->toBeFalse();
+
+    $column->clickableToPreview(true);
+    expect($column->isClickableToPreview())->toBeTrue()
+        ->and($column->isPreviewable())->toBeTrue();
+
+    $column->downloadFilename('custom-report');
+    expect($column->getDownloadFilename())->toBe('custom-report');
+});
+
+it('renders standalone download button when downloadable is true and previewable is false', function (): void {
+    $column = QrCodeColumn::make('qr')
+        ->payload(fn (): string => 'https://filamentphp.com')
+        ->downloadable(true)
+        ->previewable(false)
+        ->downloadFilename('qr-standalone');
+
+    $html = $column->toHtml();
+
+    expect($html)->toContain('fi-ta-qr-download')
+        ->and($html)->toContain('download="qr-standalone.svg"')
         ->and($html)->toContain('x-on:click.stop');
 });

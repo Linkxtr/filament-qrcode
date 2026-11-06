@@ -46,6 +46,7 @@ it('covers all HasQrInteractions methods, defaults, closures, Stringable, and fa
     // Defaults
     expect($qrCodeEntry->isDownloadable())->toBeFalse()
         ->and($qrCodeEntry->isPreviewable())->toBeTrue()
+        ->and($qrCodeEntry->isClickableToPreview())->toBeTrue()
         ->and($qrCodeEntry->isCopyable())->toBeTrue()
         ->and($qrCodeEntry->getPreviewSize())->toBe(320)
         ->and($qrCodeEntry->getPreviewHeading())->toBe('QR Code Preview')
@@ -57,9 +58,18 @@ it('covers all HasQrInteractions methods, defaults, closures, Stringable, and fa
     expect($qrCodeEntry->isDownloadable())->toBeTrue();
 
     $qrCodeEntry->previewable(false);
-    expect($qrCodeEntry->isPreviewable())->toBeFalse();
+    expect($qrCodeEntry->isPreviewable())->toBeFalse()
+        ->and($qrCodeEntry->isClickableToPreview())->toBeFalse();
     $qrCodeEntry->previewable();
-    expect($qrCodeEntry->isPreviewable())->toBeTrue();
+    expect($qrCodeEntry->isPreviewable())->toBeTrue()
+        ->and($qrCodeEntry->isClickableToPreview())->toBeTrue();
+
+    $qrCodeEntry->clickableToPreview(false);
+    expect($qrCodeEntry->isClickableToPreview())->toBeFalse()
+        ->and($qrCodeEntry->isPreviewable())->toBeFalse();
+    $qrCodeEntry->clickableToPreview();
+    expect($qrCodeEntry->isClickableToPreview())->toBeTrue()
+        ->and($qrCodeEntry->isPreviewable())->toBeTrue();
 
     $qrCodeEntry->copyable(false);
     expect($qrCodeEntry->isCopyable())->toBeFalse();
@@ -231,7 +241,8 @@ it('renders blade view with rendered svg and fallback text when empty', function
     expect($html)->toBeString()
         ->and($html)->toContain('fi-in-qr-code')
         ->and($html)->toContain('<svg')
-        ->and($html)->toContain('https://filamentphp.com/demo');
+        ->and($html)->toContain('https://filamentphp.com/demo')
+        ->and($html)->toContain('x-on:click.stop="$dispatch(\'open-modal\'');
 
     $emptyEntry = QrCodeEntry::make('qr')->state(null);
 
@@ -249,4 +260,26 @@ it('renders blade view with rendered svg and fallback text when empty', function
     ])->render();
 
     expect($emptyHtml)->toContain('No QR Code Available');
+});
+
+it('renders standalone download button in infolist entry when previewable is false', function (): void {
+    $qrCodeEntry = QrCodeEntry::make('qr')
+        ->state('https://filamentphp.com/demo')
+        ->downloadable(true)
+        ->previewable(false)
+        ->downloadFilename('entry-download');
+
+    $html = view('filament-qr::infolists.entries.qr-code-entry', [
+        'entry' => $qrCodeEntry,
+        'renderQrCode' => $qrCodeEntry->renderQrCode(...),
+        'getQrPayload' => $qrCodeEntry->getQrPayload(...),
+        'getQrFormat' => $qrCodeEntry->getQrFormat(...),
+        'getDownloadFilename' => $qrCodeEntry->getDownloadFilename(...),
+        'isDownloadable' => $qrCodeEntry->isDownloadable(...),
+        'isPreviewable' => $qrCodeEntry->isPreviewable(...),
+        'isCopyable' => $qrCodeEntry->isCopyable(...),
+    ])->render();
+
+    expect($html)->toContain('download="entry-download.svg"')
+        ->and($html)->toContain('x-on:click.stop');
 });

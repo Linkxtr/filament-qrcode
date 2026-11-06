@@ -291,3 +291,69 @@ it('accepts Format, ErrorCorrectionLevel, and GradientType enums in render and r
     );
     expect($pngDataUri)->toStartWith('data:image/png;base64,');
 });
+
+it('uses default logoSize of 0.2 when logoPath is provided in renderRaw, render, and renderDataUri', function (): void {
+    $logoFile = tempnam(sys_get_temp_dir(), 'qr_logo_').'.png';
+    $img = imagecreatetruecolor(16, 16);
+    imagepng($img, $logoFile);
+    imagedestroy($img);
+
+    try {
+        // 1. renderRaw with logoPath and default logoSize (0.2)
+        $mockBuilderRaw = Mockery::mock();
+        $mockBuilderRaw->shouldReceive('format')->once()->with('svg')->andReturnSelf();
+        $mockBuilderRaw->shouldReceive('size')->once()->with(160)->andReturnSelf();
+        $mockBuilderRaw->shouldReceive('margin')->once()->with(1)->andReturnSelf();
+        $mockBuilderRaw->shouldReceive('errorCorrection')->once()->with('M')->andReturnSelf();
+        $mockBuilderRaw->shouldReceive('color')->once()->with(0, 0, 0)->andReturnSelf();
+        $mockBuilderRaw->shouldReceive('backgroundColor')->once()->with(255, 255, 255)->andReturnSelf();
+        $mockBuilderRaw->shouldReceive('merge')->once()->with($logoFile, 0.2)->andReturnSelf();
+        $mockBuilderRaw->shouldReceive('generate')->once()->with('test-raw-default')->andReturn('<svg>raw-default</svg>');
+        QrCode::swap($mockBuilderRaw);
+
+        $rawOutput = $this->renderer->renderRaw(
+            payload: 'test-raw-default',
+            logoPath: $logoFile,
+        );
+        expect($rawOutput)->toBe('<svg>raw-default</svg>');
+
+        // 2. render with logoPath and default logoSize (0.2)
+        $mockBuilderRender = Mockery::mock();
+        $mockBuilderRender->shouldReceive('format')->once()->with('svg')->andReturnSelf();
+        $mockBuilderRender->shouldReceive('size')->once()->with(160)->andReturnSelf();
+        $mockBuilderRender->shouldReceive('margin')->once()->with(1)->andReturnSelf();
+        $mockBuilderRender->shouldReceive('errorCorrection')->once()->with('M')->andReturnSelf();
+        $mockBuilderRender->shouldReceive('color')->once()->with(0, 0, 0)->andReturnSelf();
+        $mockBuilderRender->shouldReceive('backgroundColor')->once()->with(255, 255, 255)->andReturnSelf();
+        $mockBuilderRender->shouldReceive('merge')->once()->with($logoFile, 0.2)->andReturnSelf();
+        $mockBuilderRender->shouldReceive('generate')->once()->with('test-render-default')->andReturn('<svg>render-default</svg>');
+        QrCode::swap($mockBuilderRender);
+
+        $renderOutput = $this->renderer->render(
+            payload: 'test-render-default',
+            logoPath: $logoFile,
+        );
+        expect($renderOutput)->toBe('<svg>render-default</svg>');
+
+        // 3. renderDataUri with logoPath and default logoSize (0.2)
+        $mockBuilderDataUri = Mockery::mock();
+        $mockBuilderDataUri->shouldReceive('format')->once()->with('png')->andReturnSelf();
+        $mockBuilderDataUri->shouldReceive('size')->once()->with(160)->andReturnSelf();
+        $mockBuilderDataUri->shouldReceive('margin')->once()->with(1)->andReturnSelf();
+        $mockBuilderDataUri->shouldReceive('errorCorrection')->once()->with('M')->andReturnSelf();
+        $mockBuilderDataUri->shouldReceive('color')->once()->with(0, 0, 0)->andReturnSelf();
+        $mockBuilderDataUri->shouldReceive('backgroundColor')->once()->with(255, 255, 255)->andReturnSelf();
+        $mockBuilderDataUri->shouldReceive('merge')->once()->with($logoFile, 0.2)->andReturnSelf();
+        $mockBuilderDataUri->shouldReceive('generate')->once()->with('test-datauri-default')->andReturn('png-raw-bytes');
+        QrCode::swap($mockBuilderDataUri);
+
+        $dataUriOutput = $this->renderer->renderDataUri(
+            payload: 'test-datauri-default',
+            format: 'png',
+            logoPath: $logoFile,
+        );
+        expect($dataUriOutput)->toBe('data:image/png;base64,'.base64_encode('png-raw-bytes'));
+    } finally {
+        @unlink($logoFile);
+    }
+});

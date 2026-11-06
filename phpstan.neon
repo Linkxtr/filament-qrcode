@@ -5,3 +5,5 @@ parameters:
   phpVersion:
     min: 80400
     max: 80600
+  parallel:
+    maximumNumberOfProcesses: 0

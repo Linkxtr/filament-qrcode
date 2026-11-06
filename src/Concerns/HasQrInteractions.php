@@ -8,6 +8,7 @@ use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Linkxtr\FilamentQr\Services\QrCodeRenderer;
 use Stringable;
+use Throwable;
 
 trait HasQrInteractions
 {
@@ -52,7 +53,12 @@ trait HasQrInteractions
             return is_scalar($evaluated) || $evaluated instanceof Stringable ? (string) $evaluated : 'qr-code';
         }
 
-        $record = $this->getRecord();
+        try {
+            $record = $this->getRecord();
+        } catch (Throwable) {
+            $record = null;
+        }
+
         if ($record instanceof Model) {
             $key = $record->getKey();
         } elseif (is_array($record)) {
@@ -76,6 +82,16 @@ trait HasQrInteractions
     public function isPreviewable(): bool
     {
         return (bool) $this->evaluate($this->isClickableToPreview);
+    }
+
+    public function clickableToPreview(bool|Closure $condition = true): static
+    {
+        return $this->previewable($condition);
+    }
+
+    public function isClickableToPreview(): bool
+    {
+        return $this->isPreviewable();
     }
 
     public function previewSize(int|Closure $size): static

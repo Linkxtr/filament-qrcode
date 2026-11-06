@@ -25,7 +25,13 @@
         $logoSize = is_callable($getQrLogoSize ?? null) ? $getQrLogoSize() : ($component?->getQrLogoSize() ?? 0.2);
         $encoding = is_callable($getQrEncoding ?? null) ? $getQrEncoding() : ($component?->getQrEncoding() ?? 'UTF-8');
 
-        $statePath = (isset($entry) && method_exists($entry, 'getStatePath')) ? $entry->getStatePath() : (is_callable($getName ?? null) ? $getName() : ($name ?? 'qr'));
+        $statePath = null;
+        try {
+            $statePath = (isset($entry) && method_exists($entry, 'getStatePath')) ? $entry->getStatePath() : null;
+        } catch (\Throwable) {
+            $statePath = null;
+        }
+        $statePath ??= (is_callable($getName ?? null) ? $getName() : ($name ?? 'qr'));
         $modalId = 'fi-qr-preview-' . str_replace(['.', '$', '#', '[', ']'], '-', (string) $statePath);
         $isPreviewable = is_callable($isPreviewable ?? null) ? $isPreviewable() : true;
         $isDownloadable = is_callable($isDownloadable ?? null) ? $isDownloadable() : false;
@@ -42,7 +48,12 @@
         $downloadHref = $format === 'svg'
             ? 'data:image/svg+xml;base64,' . base64_encode($renderedRaw ?? '')
             : ($renderedRaw ?? '');
-        $downloadFilename = 'qr-' . ($recordKey ?? 'code') . '.' . $format;
+        $resolvedFilename = is_callable($getDownloadFilename ?? null)
+            ? $getDownloadFilename()
+            : (($component && method_exists($component, 'getDownloadFilename')) ? $component->getDownloadFilename() : ('qr-' . ($recordKey ?? 'code')));
+        $downloadFilename = str_ends_with(strtolower((string) $resolvedFilename), '.' . strtolower((string) $format))
+            ? (string) $resolvedFilename
+            : ((string) $resolvedFilename . '.' . $format);
     @endphp
 
     @if ($payload)
@@ -55,7 +66,7 @@
                 <x-slot name="trigger">
                     <button
                         type="button"
-                        x-on:click.stop.prevent
+                        x-on:click.stop="$dispatch('open-modal', { id: @js($modalId) })"
                         class="p-2 rounded-lg bg-white shadow-inner flex items-center justify-center cursor-zoom-in hover:scale-105 transition-all focus:outline-none"
                         title="{{ __('Click to zoom preview') }}"
                     >

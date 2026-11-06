@@ -7,6 +7,7 @@ use Rector\Config\RectorConfig;
 use Rector\Set\ValueObject\SetList;
 
 return RectorConfig::configure()
+    ->withoutParallel()
     ->withPaths([
         __DIR__.'/config',
         __DIR__.'/src',

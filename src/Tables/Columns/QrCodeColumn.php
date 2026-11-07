@@ -21,6 +21,11 @@ final class QrCodeColumn extends Column
 
     private ?Closure $payloadResolver = null;
 
+    protected function setUp(): void
+    {
+        $this->disabledClick();
+    }
+
     public function payload(Closure $callback): static
     {
         $this->payloadResolver = $callback;

@@ -61,7 +61,7 @@
                 <x-slot name="trigger">
                     <button
                         type="button"
-                        x-on:click.stop="$dispatch('open-modal', { id: @js($modalId) })"
+                        x-on:click.stop.prevent="$dispatch('open-modal', { id: @js($modalId) })"
                         title="{{ __('Click to zoom preview') }}"
                         class="inline-flex items-center justify-center p-1 rounded-md bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 hover:scale-105 hover:shadow transition-all cursor-zoom-in focus:outline-none"
                     >

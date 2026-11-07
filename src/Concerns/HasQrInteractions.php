@@ -12,17 +12,17 @@ use Throwable;
 
 trait HasQrInteractions
 {
-    protected bool|Closure $isDownloadable = false;
+    protected bool|Closure|null $isDownloadable = null;
 
     protected string|Closure|null $downloadFilename = null;
 
-    protected bool|Closure $isClickableToPreview = true;
+    protected bool|Closure|null $isClickableToPreview = null;
 
     protected int|Closure|null $previewSize = null;
 
     protected string|Closure|null $previewHeading = null;
 
-    protected bool|Closure $isCopyable = true;
+    protected bool|Closure|null $isCopyable = null;
 
     protected string|Closure $copyMessage = 'Copied to clipboard!';
 
@@ -35,7 +35,11 @@ trait HasQrInteractions
 
     public function isDownloadable(): bool
     {
-        return (bool) $this->evaluate($this->isDownloadable);
+        if ($this->isDownloadable !== null) {
+            return (bool) $this->evaluate($this->isDownloadable);
+        }
+
+        return false;
     }
 
     public function downloadFilename(string|Closure $filename): static
@@ -81,7 +85,7 @@ trait HasQrInteractions
 
     public function isPreviewable(): bool
     {
-        return (bool) $this->evaluate($this->isClickableToPreview);
+        return $this->isClickableToPreview();
     }
 
     public function clickableToPreview(bool|Closure $condition = true): static
@@ -91,7 +95,11 @@ trait HasQrInteractions
 
     public function isClickableToPreview(): bool
     {
-        return $this->isPreviewable();
+        if ($this->isClickableToPreview !== null) {
+            return (bool) $this->evaluate($this->isClickableToPreview);
+        }
+
+        return true;
     }
 
     public function previewSize(int|Closure $size): static
@@ -139,7 +147,11 @@ trait HasQrInteractions
 
     public function isCopyable(): bool
     {
-        return (bool) $this->evaluate($this->isCopyable);
+        if ($this->isCopyable !== null) {
+            return (bool) $this->evaluate($this->isCopyable);
+        }
+
+        return true;
     }
 
     public function copyMessage(string|Closure $message): static

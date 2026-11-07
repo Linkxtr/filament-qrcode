@@ -99,8 +99,23 @@ it('renders qr code with all styling options and blade view with modal preview',
         ->and($html)->toContain('fi-modal')
         ->and($html)->toContain('https://filamentphp.com')
         ->and($html)->toContain('Download QR')
-        ->and($html)->toContain('x-on:click.stop="$dispatch(\'open-modal\'')
+        ->and($html)->toContain('x-on:click.stop.prevent="$dispatch(\'open-modal\'')
         ->and($html)->toContain('x-on:click.stop');
+});
+
+it('disables cell click by default on QrCodeColumn to prevent table row navigation', function (): void {
+    $column = QrCodeColumn::make('qr');
+
+    expect($column->isClickDisabled())->toBeTrue();
+
+    $column->disabledClick(false);
+    expect($column->isClickDisabled())->toBeFalse();
+
+    $column->disabledClick(fn (): bool => true);
+    expect($column->isClickDisabled())->toBeTrue();
+
+    $column->disabledClick(fn (): bool => false);
+    expect($column->isClickDisabled())->toBeFalse();
 });
 
 it('has correct default interaction properties on QrCodeColumn', function (): void {
@@ -121,9 +136,43 @@ it('has correct default interaction properties on QrCodeColumn', function (): vo
         ->and($column->isPreviewable())->toBeFalse()
         ->and($column->isCopyable())->toBeFalse();
 
+    $column->downloadable(false)->previewable(true)->copyable(true);
+    expect($column->isDownloadable())->toBeFalse()
+        ->and($column->isClickableToPreview())->toBeTrue()
+        ->and($column->isPreviewable())->toBeTrue()
+        ->and($column->isCopyable())->toBeTrue();
+
+    $column->clickableToPreview(false);
+    expect($column->isClickableToPreview())->toBeFalse()
+        ->and($column->isPreviewable())->toBeFalse();
+
     $column->clickableToPreview(true);
     expect($column->isClickableToPreview())->toBeTrue()
         ->and($column->isPreviewable())->toBeTrue();
+
+    $column->downloadable(fn (): bool => true)
+        ->previewable(fn (): bool => true)
+        ->copyable(fn (): bool => true);
+    expect($column->isDownloadable())->toBeTrue()
+        ->and($column->isPreviewable())->toBeTrue()
+        ->and($column->isClickableToPreview())->toBeTrue()
+        ->and($column->isCopyable())->toBeTrue();
+
+    $column->downloadable(fn (): bool => false)
+        ->previewable(fn (): bool => false)
+        ->copyable(fn (): bool => false);
+    expect($column->isDownloadable())->toBeFalse()
+        ->and($column->isPreviewable())->toBeFalse()
+        ->and($column->isClickableToPreview())->toBeFalse()
+        ->and($column->isCopyable())->toBeFalse();
+
+    $column->clickableToPreview(fn (): bool => true);
+    expect($column->isClickableToPreview())->toBeTrue()
+        ->and($column->isPreviewable())->toBeTrue();
+
+    $column->clickableToPreview(fn (): bool => false);
+    expect($column->isClickableToPreview())->toBeFalse()
+        ->and($column->isPreviewable())->toBeFalse();
 
     $column->downloadFilename('custom-report');
     expect($column->getDownloadFilename())->toBe('custom-report');

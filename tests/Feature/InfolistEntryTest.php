@@ -76,12 +76,33 @@ it('covers all HasQrInteractions methods, defaults, closures, Stringable, and fa
     $qrCodeEntry->copyable();
     expect($qrCodeEntry->isCopyable())->toBeTrue();
 
+    $qrCodeEntry->downloadable(false);
+    expect($qrCodeEntry->isDownloadable())->toBeFalse();
+    $qrCodeEntry->downloadable(true);
+    expect($qrCodeEntry->isDownloadable())->toBeTrue();
+
     $qrCodeEntry->downloadable(fn (): int => 1)
         ->previewable(fn (): int => 1)
         ->copyable(fn (): int => 1);
     expect($qrCodeEntry->isDownloadable())->toBeTrue()
         ->and($qrCodeEntry->isPreviewable())->toBeTrue()
         ->and($qrCodeEntry->isCopyable())->toBeTrue();
+
+    $qrCodeEntry->downloadable(fn (): bool => false)
+        ->previewable(fn (): bool => false)
+        ->copyable(fn (): bool => false);
+    expect($qrCodeEntry->isDownloadable())->toBeFalse()
+        ->and($qrCodeEntry->isPreviewable())->toBeFalse()
+        ->and($qrCodeEntry->isClickableToPreview())->toBeFalse()
+        ->and($qrCodeEntry->isCopyable())->toBeFalse();
+
+    $qrCodeEntry->clickableToPreview(fn (): bool => true);
+    expect($qrCodeEntry->isClickableToPreview())->toBeTrue()
+        ->and($qrCodeEntry->isPreviewable())->toBeTrue();
+
+    $qrCodeEntry->clickableToPreview(fn (): bool => false);
+    expect($qrCodeEntry->isClickableToPreview())->toBeFalse()
+        ->and($qrCodeEntry->isPreviewable())->toBeFalse();
 
     $stringable = new class implements Stringable
     {
@@ -242,7 +263,7 @@ it('renders blade view with rendered svg and fallback text when empty', function
         ->and($html)->toContain('fi-in-qr-code')
         ->and($html)->toContain('<svg')
         ->and($html)->toContain('https://filamentphp.com/demo')
-        ->and($html)->toContain('x-on:click.stop="$dispatch(\'open-modal\'');
+        ->and($html)->toContain('x-on:click.stop.prevent="$dispatch(\'open-modal\'');
 
     $emptyEntry = QrCodeEntry::make('qr')->state(null);
 

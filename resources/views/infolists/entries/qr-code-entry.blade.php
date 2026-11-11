@@ -99,9 +99,19 @@
                     {{ $previewHeading }}
                 </x-slot>
 
-                <div class="fi-qr-modal-content flex flex-col items-center justify-center p-4 gap-4">
-                    <div class="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center max-w-full">
-                        <div class="w-64 h-64 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full">
+                <div
+                    class="fi-qr-modal-content flex flex-col items-center justify-center p-4 text-center"
+                    style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; text-align: center; padding: 1rem;"
+                    x-on:click.stop
+                >
+                    <div
+                        class="p-4 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center mx-auto"
+                        style="display: flex; justify-content: center; align-items: center; margin: 0 auto; max-width: 280px; width: 100%; aspect-ratio: 1 / 1; border-radius: 0.75rem; padding: 1rem; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border: 1px solid rgba(0, 0, 0, 0.05);"
+                    >
+                        <div
+                            class="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>img]:w-full [&>img]:h-full"
+                            style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;"
+                        >
                             <x-qrcode
                                 :data="$payload"
                                 :size="$previewSize"
@@ -125,23 +135,34 @@
                         </div>
                     </div>
 
-                    <div class="w-full text-center px-2">
-                        <span class="text-xs font-mono text-gray-500 dark:text-gray-400 break-all select-all bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 block">
+                    <div
+                        class="w-full flex justify-center text-center mt-4 px-2"
+                        style="display: flex; justify-content: center; text-align: center; width: 100%; margin-top: 1rem;"
+                    >
+                        <span
+                            class="inline-block font-mono text-xs text-gray-600 dark:text-gray-400 break-all select-all bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700"
+                            style="display: inline-block; font-family: monospace; font-size: 0.75rem; word-break: break-all; padding: 0.375rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(156, 163, 175, 0.25); background-color: rgba(156, 163, 175, 0.08);"
+                        >
                             {{ $payload }}
                         </span>
                     </div>
 
                     @if ($isDownloadable)
-                        <div class="mt-2 flex items-center justify-center">
-                            <a
+                        <div
+                            class="w-full flex justify-center mt-4"
+                            style="display: flex; justify-content: center; width: 100%; margin-top: 1rem;"
+                        >
+                            <x-filament::button
+                                tag="a"
+                                :href="$downloadHref"
+                                :download="$downloadFilename"
+                                icon="heroicon-o-arrow-down-tray"
+                                size="sm"
+                                color="primary"
                                 x-on:click.stop
-                                href="{{ $downloadHref }}"
-                                download="{{ $downloadFilename }}"
-                                class="fi-btn fi-btn-size-sm inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary-600 text-white shadow hover:bg-primary-500 transition-colors"
                             >
-                                <x-filament::icon icon="heroicon-o-arrow-down-tray" class="w-4 h-4" />
-                                <span>{{ __('Download QR') }}</span>
-                            </a>
+                                {{ __('Download QR') }}
+                            </x-filament::button>
                         </div>
                     @endif
                 </div>

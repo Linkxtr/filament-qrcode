@@ -304,3 +304,34 @@ it('renders standalone download button in infolist entry when previewable is fal
     expect($html)->toContain('download="entry-download.svg"')
         ->and($html)->toContain('x-on:click.stop');
 });
+
+it('renders preview modal with defensive centered layout, card container, monospace pill, and filament button in infolist entry', function (): void {
+    $qrCodeEntry = QrCodeEntry::make('email')
+        ->state('admin@test.test')
+        ->previewable(true)
+        ->downloadable(true);
+
+    $html = view('filament-qr::infolists.entries.qr-code-entry', [
+        'entry' => $qrCodeEntry,
+        'renderQrCode' => $qrCodeEntry->renderQrCode(...),
+        'getQrPayload' => $qrCodeEntry->getQrPayload(...),
+        'getQrFormat' => $qrCodeEntry->getQrFormat(...),
+        'renderPreviewQrCode' => $qrCodeEntry->renderPreviewQrCode(...),
+        'getPreviewHeading' => $qrCodeEntry->getPreviewHeading(...),
+        'getDownloadFilename' => $qrCodeEntry->getDownloadFilename(...),
+        'isDownloadable' => $qrCodeEntry->isDownloadable(...),
+        'isPreviewable' => $qrCodeEntry->isPreviewable(...),
+        'isCopyable' => $qrCodeEntry->isCopyable(...),
+        'getCopyMessage' => $qrCodeEntry->getCopyMessage(...),
+    ])->render();
+
+    expect($html)
+        ->toContain('fi-qr-modal-content')
+        ->toContain('style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; text-align: center; padding: 1rem;"')
+        ->toContain('style="display: flex; justify-content: center; align-items: center; margin: 0 auto; max-width: 280px; width: 100%; aspect-ratio: 1 / 1; border-radius: 0.75rem; padding: 1rem; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border: 1px solid rgba(0, 0, 0, 0.05);"')
+        ->toContain('style="display: flex; justify-content: center; text-align: center; width: 100%; margin-top: 1rem;"')
+        ->toContain('style="display: inline-block; font-family: monospace; font-size: 0.75rem; word-break: break-all; padding: 0.375rem 0.75rem; border-radius: 0.5rem;')
+        ->toContain('admin@test.test')
+        ->toContain('style="display: flex; justify-content: center; width: 100%; margin-top: 1rem;"')
+        ->toContain('Download QR');
+});

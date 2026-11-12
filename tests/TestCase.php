@@ -8,7 +8,9 @@ use BladeUI\Heroicons\BladeHeroiconsServiceProvider;
 use BladeUI\Icons\BladeIconsServiceProvider;
 use Filament\Actions\ActionsServiceProvider;
 use Filament\FilamentServiceProvider;
+use Filament\Forms\FormsServiceProvider;
 use Filament\Infolists\InfolistsServiceProvider;
+use Filament\Schemas\SchemasServiceProvider;
 use Filament\Support\SupportServiceProvider;
 use Filament\Tables\TablesServiceProvider;
 use Illuminate\Database\Schema\Blueprint;
@@ -45,6 +47,8 @@ class TestCase extends Orchestra
             SupportServiceProvider::class,
             TablesServiceProvider::class,
             InfolistsServiceProvider::class,
+            FormsServiceProvider::class,
+            SchemasServiceProvider::class,
             ActionsServiceProvider::class,
             QrCodeServiceProvider::class,
             FilamentServiceProvider::class,

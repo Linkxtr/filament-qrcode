@@ -19,14 +19,14 @@ final class QrCodeColumn extends Column
 
     protected string $view = 'filament-qr::tables.columns.qr-code-column';
 
-    private ?Closure $payloadResolver = null;
+    private Closure|string|null $payloadResolver = null;
 
     protected function setUp(): void
     {
         $this->disabledClick();
     }
 
-    public function payload(Closure $callback): static
+    public function payload(string|Closure $callback): static
     {
         $this->payloadResolver = $callback;
 
@@ -37,7 +37,7 @@ final class QrCodeColumn extends Column
     {
         $raw = $this->payloadResolver instanceof Closure
             ? $this->evaluate($this->payloadResolver)
-            : ($this->getState() ?? $this->evaluate($this->getStateUsing));
+            : ($this->payloadResolver ?? $this->getState() ?? $this->evaluate($this->getStateUsing));
 
         return $this->resolveFormattedPayload($raw);
     }

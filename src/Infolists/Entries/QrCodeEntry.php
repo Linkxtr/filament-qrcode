@@ -21,7 +21,7 @@ final class QrCodeEntry extends Entry
 
     protected string $view = 'filament-qr::infolists.entries.qr-code-entry';
 
-    private ?Closure $payloadResolver = null;
+    private Closure|string|null $payloadResolver = null;
 
     /**
      * @param  array<string, mixed>|class-string<Model>|Closure|Model|null  $record
@@ -33,7 +33,7 @@ final class QrCodeEntry extends Entry
         return $this;
     }
 
-    public function payload(Closure $callback): static
+    public function payload(string|Closure $callback): static
     {
         $this->payloadResolver = $callback;
 
@@ -44,6 +44,8 @@ final class QrCodeEntry extends Entry
     {
         if ($this->payloadResolver instanceof Closure) {
             $raw = $this->evaluate($this->payloadResolver);
+        } elseif (is_string($this->payloadResolver)) {
+            $raw = $this->payloadResolver;
         } else {
             try {
                 $raw = $this->getState();

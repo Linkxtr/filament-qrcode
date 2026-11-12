@@ -18,6 +18,7 @@ Seamlessly embed dynamic QR codes inside **Filament Table Columns**, display ric
 
 - **Table Column (`QrCodeColumn`)**: Inline preview, responsive sizing, dark mode support, title tooltip, and instant click-to-preview or download.
 - **Infolist Entry (`QrCodeEntry`)**: High-fidelity QR code display in view pages, infolist schemas, and slide-overs with state readout.
+- **Form Preview Field (`QrCodeField`)**: Reactive live preview cards in Filament form schemas, dark mode compatible layout, dynamic live updates, and built-in copy and download buttons.
 - **Table Actions (`DownloadQrAction` & `DownloadQrBulkAction`)**: Single-record streaming downloads and multi-record ZIP archives in SVG, PNG, or WebP.
 - **Fluent Styling**: Custom dimensions, quiet-zone margins, error correction levels (L, M, Q, H), and brand color palette tokens (`primary`, `success`, `danger`, `warning`, `info`, `gray`, or hex).
 - **Advanced Aesthetics**: Linear gradients, custom finder eye inner/outer colors, and embedded logo images.
@@ -193,7 +194,61 @@ The `QrCodeEntry` component inherits the exact same fluent styling and formattin
 
 ---
 
-### 3. Table Actions
+### 3. Form Preview Fields (`QrCodeField`)
+
+Embed live, reactive QR codes directly into Filament Form schemas (such as Create, Edit, or modal schemas):
+
+```php
+namespace App\Filament\Resources\CampaignResource\Pages;
+
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Linkxtr\FilamentQr\Forms\Components\QrCodeField;
+
+public function form(Form $form): Form
+{
+    return $form
+        ->schema([
+            TextInput::make('target_url')
+                ->label('Landing Page URL')
+                ->live(onBlur: true)
+                ->default('https://linkxtr.io'),
+
+            QrCodeField::make('qr_preview')
+                ->label('Dynamic QR Preview')
+                ->payload(fn (Get $get): string => (string) ($get('target_url') ?: 'https://linkxtr.io'))
+                ->size(200)
+                ->margin(2)
+                ->color('primary')
+                ->downloadable()
+                ->copyable(),
+        ]);
+}
+```
+
+#### Fluent Styling & Reactive Helpers
+
+`QrCodeField` supports intuitive, concise styling methods:
+
+```php
+QrCodeField::make('qr')
+    ->payload('https://linkxtr.io')
+    ->size(220)
+    ->margin(2)
+    ->format('svg') // svg, png, webp, eps
+    ->color('#0f172a')
+    ->backgroundColor('#f8fafc')
+    ->gradient(from: '#0284c7', to: '#4f46e5', type: 'vertical')
+    ->eye(\Linkxtr\QrCode\Enums\EyeStyle::CIRCLE)
+    ->style(\Linkxtr\QrCode\Enums\Style::ROUND, 0.75)
+    ->downloadable()
+    ->copyable();
+```
+
+---
+
+### 4. Table Actions
 
 #### Single-Record Action (`DownloadQrAction`)
 
@@ -303,6 +358,19 @@ Every component implementing `HasQrCodeStyling` supports the following fluent me
 - [x] PHP compatibility matrix validated (`^8.2 || ^8.3 || ^8.4`).
 - [x] Laravel dependency configured for versions `^10.0 || ^11.0`.
 - [x] Packagist GitHub webhook configured for automated release publishing.
+
+---
+
+## Strategic Roadmap
+
+`linkxtr/filament-qr` is actively developed across four strategic waves:
+
+- **Wave 1 (v1.1) - Form Live QR Preview Component**: `QrCodeField` with reactive schema updating (`live()`), card presentation, zoom modal preview, and one-click download/copy buttons. *(Released)*
+- **Wave 2 (v1.2) - Interactive QR Customizer**: In-form visual design studio for real-time module styles, eye shapes, gradient presets, and logo uploads. *(Planned)*
+- **Wave 3 (v1.3) - Print Sheet Action & Grid Template**: Batch label sheets with standard stationery layouts (Avery, A4, US Letter), cut lines, and print-ready PDF/HTML. *(Planned)*
+- **Wave 4 (v1.4) - Dashboard Widgets**: `QuickQrGeneratorWidget` for ad-hoc generation and `QrCodeStatsWidget` for scan telemetry and campaign metrics. *(Planned)*
+
+📖 *For full technical specifications, architecture diagrams, and milestone details, see the [Strategic Roadmap](docs/ROADMAP.md).*
 
 ---
 

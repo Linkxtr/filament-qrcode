@@ -1,7 +1,8 @@
 <?php
 
 declare(strict_types=1);
-use Linkxtr\FilamentQr\Tests\TestCase;
+
+use Linkxtr\FilamentQrCode\Tests\TestCase;
 
 require_once __DIR__.'/Support/Overrides.php';
 
@@ -11,6 +12,5 @@ pest()
         $GLOBALS['mockTempnamFalse'] = false;
         $GLOBALS['mockTempnamPath'] = null;
         $GLOBALS['lastUnlinkedFile'] = null;
-        $GLOBALS['mockImagickLoaded'] = null;
     })
     ->in(__DIR__);

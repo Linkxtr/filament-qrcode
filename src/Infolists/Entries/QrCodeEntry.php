@@ -2,26 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Linkxtr\FilamentQr\Infolists\Entries;
+namespace Linkxtr\FilamentQrCode\Infolists\Entries;
 
 use Closure;
 use Filament\Infolists\Components\Entry;
 use Illuminate\Database\Eloquent\Model;
-use Linkxtr\FilamentQr\Concerns\HasPayloadFormatters;
-use Linkxtr\FilamentQr\Concerns\HasQrCodeStyling;
-use Linkxtr\FilamentQr\Concerns\HasQrInteractions;
-use Linkxtr\FilamentQr\Services\QrCodeRenderer;
+use Linkxtr\FilamentQrCode\Concerns\HasPayload;
+use Linkxtr\FilamentQrCode\Concerns\HasQrCodeStyling;
+use Linkxtr\FilamentQrCode\Concerns\HasQrInteractions;
 use Throwable;
 
 final class QrCodeEntry extends Entry
 {
-    use HasPayloadFormatters;
+    use HasPayload;
     use HasQrCodeStyling;
     use HasQrInteractions;
 
-    protected string $view = 'filament-qr::infolists.entries.qr-code-entry';
-
-    private Closure|string|null $payloadResolver = null;
+    protected string $view = 'filament-qrcode::infolists.entries.qr-code-entry';
 
     /**
      * @param  array<string, mixed>|class-string<Model>|Closure|Model|null  $record
@@ -33,18 +30,11 @@ final class QrCodeEntry extends Entry
         return $this;
     }
 
-    public function payload(string|Closure $callback): static
-    {
-        $this->payloadResolver = $callback;
-
-        return $this;
-    }
-
     public function getQrPayload(): ?string
     {
         if ($this->payloadResolver instanceof Closure) {
             $raw = $this->evaluate($this->payloadResolver);
-        } elseif (is_string($this->payloadResolver)) {
+        } elseif ($this->payloadResolver !== null) {
             $raw = $this->payloadResolver;
         } else {
             try {
@@ -55,38 +45,5 @@ final class QrCodeEntry extends Entry
         }
 
         return $this->resolveFormattedPayload($raw);
-    }
-
-    public function renderQrCode(): ?string
-    {
-        $payload = $this->getQrPayload();
-
-        if (empty($payload)) {
-            return null;
-        }
-
-        /** @var QrCodeRenderer $qrCodeRenderer */
-        $qrCodeRenderer = app(QrCodeRenderer::class);
-
-        return $qrCodeRenderer->render(
-            payload: $payload,
-            size: $this->getQrSize(),
-            margin: $this->getQrMargin(),
-            format: $this->getQrFormat(),
-            errorCorrection: $this->getQrErrorCorrection(),
-            color: $this->getQrColor(),
-            backgroundColor: $this->getQrBackgroundColor(),
-            gradient: $this->getQrGradient(),
-            eyeColors: $this->getQrEyeColors(),
-            eyeStyle: $this->getQrEyeStyle(),
-            internalEyeStyle: $this->getQrInternalEyeStyle(),
-            style: $this->getQrStyle(),
-            styleSize: $this->getQrStyleSize(),
-            logoPath: $this->getQrLogoPath(),
-            logoSize: $this->getQrLogoSize(),
-            dpi: $this->getQrDpi(),
-            resolution: $this->getQrResolution(),
-            encoding: $this->getQrEncoding(),
-        );
     }
 }

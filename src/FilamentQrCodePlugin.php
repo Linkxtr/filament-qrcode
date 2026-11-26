@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Linkxtr\FilamentQr;
+namespace Linkxtr\FilamentQrCode;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
 
-final class FilamentQrPlugin implements Plugin
+final class FilamentQrCodePlugin implements Plugin
 {
     public static function make(): static
     {
@@ -24,7 +24,7 @@ final class FilamentQrPlugin implements Plugin
 
     public function getId(): string
     {
-        return 'filament-qr';
+        return 'filament-qrcode';
     }
 
     public function register(Panel $panel): void

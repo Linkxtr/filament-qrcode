@@ -6,13 +6,18 @@ use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
-use Linkxtr\FilamentQr\Concerns\HasQrInteractions;
-use Linkxtr\FilamentQr\Forms\Components\QrCodeField;
+use Linkxtr\FilamentQrCode\Concerns\HasQrInteractions;
+use Linkxtr\FilamentQrCode\Forms\Components\QrCodeField;
+use Linkxtr\QrCode\DataTypes\Email;
+use Linkxtr\QrCode\DataTypes\SMS;
+use Linkxtr\QrCode\DataTypes\WhatsApp;
+use Linkxtr\QrCode\DataTypes\WiFi;
 use Linkxtr\QrCode\Enums\ErrorCorrectionLevel;
 use Linkxtr\QrCode\Enums\EyeStyle;
 use Linkxtr\QrCode\Enums\Format;
 use Linkxtr\QrCode\Enums\GradientType;
 use Linkxtr\QrCode\Enums\Style;
+use Linkxtr\QrCode\Generator;
 use Livewire\Component;
 
 covers(QrCodeField::class, HasQrInteractions::class);
@@ -23,6 +28,7 @@ it('initializes qr code form field with defaults and sets dehydrated to false', 
     expect($field)->toBeInstanceOf(QrCodeField::class)
         ->and($field->getName())->toBe('qr_preview')
         ->and($field->isDehydrated())->toBeFalse()
+        ->and($field->getExtraViewData())->toBe(['record' => null])
         ->and($field->isDownloadable())->toBeFalse()
         ->and($field->isPreviewable())->toBeTrue()
         ->and($field->isCopyable())->toBeTrue()
@@ -52,32 +58,38 @@ it('resolves payload from static string, closure, and state via schema container
         ];
     };
 
-    $fieldState = QrCodeField::make('qr');
+    $fieldState = QrCodeField::make('qr')->hint('Scan this QR');
     $schema = Schema::make($livewire)->statePath('data');
     $fieldState->container($schema);
 
-    expect($fieldState->getQrPayload())->toBe('https://state.example.com');
+    expect($fieldState->getQrPayload())->toBe('https://state.example.com')
+        ->and($fieldState->getExtraViewData())->toHaveKeys(['get', 'operation', 'record'])
+        ->and($fieldState->getChildComponents(QrCodeField::AFTER_LABEL_SCHEMA_KEY))->not->toBeEmpty();
+
+    $fieldThrowing = QrCodeField::make('qr');
+    $fieldThrowing->container(Schema::make());
+
+    expect($fieldThrowing->getQrPayload())->toBeNull()
+        ->and($fieldThrowing->renderQrCode())->toBeNull();
 
     $fieldEmpty = QrCodeField::make('qr');
     expect($fieldEmpty->getQrPayload())->toBeNull()
         ->and($fieldEmpty->renderQrCode())->toBeNull();
 });
 
-it('supports fluent styling alias methods matching the roadmap spec', function (): void {
+it('supports canonical qr* styling methods from HasQrCodeStyling', function (): void {
     $field = QrCodeField::make('qr')
-        ->size(220)
-        ->margin(3)
-        ->format(Format::PNG)
-        ->errorCorrection(ErrorCorrectionLevel::H)
-        ->color('#224466')
-        ->backgroundColor('#f0f4f8')
-        ->gradient('#112233', '#445566', GradientType::VERTICAL)
-        ->eye(EyeStyle::CIRCLE)
-        ->style(Style::ROUND, 0.75)
-        ->logo('images/brand.png', 0.22)
-        ->dpi(300)
-        ->resolution(300)
-        ->encoding('UTF-8');
+        ->qrSize(220)
+        ->qrMargin(3)
+        ->qrFormat(Format::PNG)
+        ->qrErrorCorrection(ErrorCorrectionLevel::H)
+        ->qrColor('#224466')
+        ->qrBackgroundColor('#f0f4f8')
+        ->qrGradient('#112233', '#445566', GradientType::VERTICAL)
+        ->qrEyeStyle(EyeStyle::CIRCLE)
+        ->qrStyle(Style::ROUND, 0.75)
+        ->qrLogo('images/brand.png', 0.22)
+        ->qrEncoding('UTF-8');
 
     expect($field->getQrSize())->toBe(220)
         ->and($field->getQrMargin())->toBe(3)
@@ -95,27 +107,30 @@ it('supports fluent styling alias methods matching the roadmap spec', function (
         ->and($field->getQrStyleSize())->toBe(0.75)
         ->and($field->getQrLogoPath())->toBe('images/brand.png')
         ->and($field->getQrLogoSize())->toBe(0.22)
-        ->and($field->getQrDpi())->toBe(300)
-        ->and($field->getQrResolution())->toBe(300)
         ->and($field->getQrEncoding())->toBe('UTF-8');
+
+    $fieldDefaultLogo = QrCodeField::make('qr')->qrLogo('images/default-brand.png');
+    expect($fieldDefaultLogo->getQrLogoPath())->toBe('images/default-brand.png')
+        ->and($fieldDefaultLogo->getQrLogoSize())->toBe(0.2);
 });
 
-it('supports payload formatters such as asWifi, asUrl, asEmail, and asSms on form field', function (): void {
+it('supports laravel-qrcode Stringable DataTypes via payload() and formatPayloadUsing() on form field', function (): void {
     $wifiField = QrCodeField::make('wifi')
-        ->asWifi(ssid: 'HomeNetwork', password: 'secretpassword', encryption: 'WPA');
-    expect($wifiField->getQrPayload())->toContain('WIFI:S:HomeNetwork;T:WPA;P:secretpassword;;');
-
-    $urlField = QrCodeField::make('website')
-        ->asUrl('https://apricotcake.linkxtr.io');
-    expect($urlField->getQrPayload())->toBe('https://apricotcake.linkxtr.io');
+        ->payload(new WiFi(ssid: 'HomeNetwork', encryption: 'WPA', password: 'secretpassword'));
+    expect($wifiField->getQrPayload())->toBe('WIFI:S:HomeNetwork;T:WPA;P:secretpassword;;');
 
     $emailField = QrCodeField::make('email')
-        ->asEmail(email: 'dev@linkxtr.io', subject: 'Inquiry');
-    expect($emailField->getQrPayload())->toBe('mailto:dev@linkxtr.io?subject=Inquiry');
+        ->payload(fn (): Email => new Email(address: 'dev@linkx.tr', subject: 'Inquiry'));
+    expect($emailField->getQrPayload())->toBe('mailto:dev@linkx.tr?subject=Inquiry');
 
     $smsField = QrCodeField::make('sms')
-        ->asSms(phone: '+1234567890', message: 'Hello');
+        ->payload('+1234567890')
+        ->formatPayloadUsing(fn (mixed $state): SMS => new SMS(phoneNumber: is_string($state) ? $state : '', message: 'Hello'));
     expect($smsField->getQrPayload())->toBe('sms:+1234567890?body=Hello');
+
+    $whatsappField = QrCodeField::make('whatsapp')
+        ->payload(new WhatsApp(phoneNumber: '+1234567890', message: 'Hi'));
+    expect($whatsappField->getQrPayload())->toBe('https://wa.me/1234567890?text=Hi');
 });
 
 it('renders blade view with rendered svg, dark mode classes, and empty state fallback', function (): void {
@@ -126,7 +141,7 @@ it('renders blade view with rendered svg, dark mode classes, and empty state fal
         ->copyMessage('Copied link!')
         ->downloadFilename('custom-qr-preview');
 
-    $html = view('filament-qr::forms.components.qr-code-field', [
+    $html = view('filament-qrcode::forms.components.qr-code-field', [
         'field' => $field,
         'renderQrCode' => $field->renderQrCode(...),
         'getQrPayload' => $field->getQrPayload(...),
@@ -152,7 +167,7 @@ it('renders blade view with rendered svg, dark mode classes, and empty state fal
 
     // Empty state test
     $emptyField = QrCodeField::make('empty_qr');
-    $emptyHtml = view('filament-qr::forms.components.qr-code-field', [
+    $emptyHtml = view('filament-qrcode::forms.components.qr-code-field', [
         'field' => $emptyField,
         'getQrPayload' => fn (): ?string => null,
     ])->render();
@@ -168,7 +183,7 @@ it('renders standalone inline card when previewable is false', function (): void
         ->downloadable(true)
         ->copyable(true);
 
-    $html = view('filament-qr::forms.components.qr-code-field', [
+    $html = view('filament-qrcode::forms.components.qr-code-field', [
         'field' => $field,
         'renderQrCode' => $field->renderQrCode(...),
         'getQrPayload' => $field->getQrPayload(...),
@@ -199,20 +214,32 @@ it('renders via toHtml() seamlessly', function (): void {
 it('forwards all styling parameters on renderQrCode to produce valid SVG', function (): void {
     $field = QrCodeField::make('styled_qr')
         ->payload('https://linkxtr.io/full-style')
-        ->size(180)
-        ->margin(2)
-        ->format('svg')
-        ->errorCorrection('Q')
-        ->color('#0a2540')
-        ->backgroundColor('#ffffff')
-        ->gradient('#0a2540', '#635bff', GradientType::VERTICAL)
-        ->eye(EyeStyle::CIRCLE)
-        ->style(Style::ROUND, 0.8)
-        ->encoding('UTF-8');
+        ->qrSize(180)
+        ->qrMargin(2)
+        ->qrFormat('svg')
+        ->qrErrorCorrection('Q')
+        ->qrColor('#0a2540')
+        ->qrBackgroundColor('#ffffff')
+        ->qrGradient('#0a2540', '#635bff', GradientType::VERTICAL)
+        ->qrEyeStyle(EyeStyle::CIRCLE)
+        ->qrStyle(Style::ROUND, 0.8)
+        ->qrEncoding('UTF-8');
 
     $rendered = $field->renderQrCode();
 
     expect($rendered)->toBeString()
         ->and($rendered)->toContain('<svg')
         ->and($rendered)->toContain('width="180"');
+});
+
+it('applies configureQrUsing on QrCodeField for advanced laravel-qrcode features', function (): void {
+    $field = QrCodeField::make('advanced_qr')
+        ->payload('https://linkx.tr/custom')
+        ->configureQrUsing(fn (Generator $qr): Generator => $qr->size(245)->gray(20, 95));
+
+    $rendered = $field->renderQrCode();
+
+    expect($rendered)->toBeString()
+        ->and($rendered)->toContain('<svg')
+        ->and($rendered)->toContain('width="245"');
 });

@@ -5,34 +5,33 @@ declare(strict_types=1);
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use Linkxtr\FilamentQr\Actions\DownloadQrBulkAction;
-use Linkxtr\FilamentQr\Tests\Fixtures\Models\Record;
+use Linkxtr\FilamentQrCode\Actions\DownloadQrCodeBulkAction;
+use Linkxtr\FilamentQrCode\Tests\Fixtures\Models\Record;
 use Linkxtr\QrCode\Enums\EyeStyle;
 use Linkxtr\QrCode\Enums\GradientType;
 use Linkxtr\QrCode\Enums\Style;
+use Linkxtr\QrCode\Generator;
 use Livewire\Component;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-covers(DownloadQrBulkAction::class);
+covers(DownloadQrCodeBulkAction::class);
 
 it('initializes download qr bulk action with defaults, label, icon, and deselect configuration', function (): void {
-    $downloadQrBulkAction = DownloadQrBulkAction::make();
+    $DownloadQrCodeBulkAction = DownloadQrCodeBulkAction::make();
 
-    expect(DownloadQrBulkAction::getDefaultName())->toBe('downloadQrBulk')
-        ->and($downloadQrBulkAction->getName())->toBe('downloadQrBulk')
-        ->and($downloadQrBulkAction->getLabel())->toBe('Download QR Codes')
-        ->and($downloadQrBulkAction->getIcon())->toBe('heroicon-o-arrow-down-tray')
-        ->and($downloadQrBulkAction->getFilename())->toBe('qrcodes.zip')
-        ->and($downloadQrBulkAction->getZipFilename())->toBe('qrcodes.zip')
-        ->and($downloadQrBulkAction->getArchiveFilename())->toBe('qrcodes.zip')
-        ->and($downloadQrBulkAction->getQrFormat())->toBe('svg')
-        ->and($downloadQrBulkAction->shouldDeselectRecordsAfterCompletion())->toBeFalse();
+    expect(DownloadQrCodeBulkAction::getDefaultName())->toBe('downloadQrBulk')
+        ->and($DownloadQrCodeBulkAction->getName())->toBe('downloadQrBulk')
+        ->and($DownloadQrCodeBulkAction->getLabel())->toBe('Download QR Codes')
+        ->and($DownloadQrCodeBulkAction->getIcon())->toBe('heroicon-o-arrow-down-tray')
+        ->and($DownloadQrCodeBulkAction->getFilename())->toBe('qrcodes.zip')
+        ->and($DownloadQrCodeBulkAction->getQrFormat())->toBe('svg')
+        ->and($DownloadQrCodeBulkAction->shouldDeselectRecordsAfterCompletion())->toBeFalse();
 });
 
 it('fetches selected records from custom collection or parent livewire table and checks deselect behavior', function (): void {
     $customRecords = new Collection([['id' => 1, 'qr' => 'a']]);
-    $downloadQrBulkAction = DownloadQrBulkAction::make()->records($customRecords);
-    expect($downloadQrBulkAction->getSelectedRecords())->toBe($customRecords);
+    $DownloadQrCodeBulkAction = DownloadQrCodeBulkAction::make()->records($customRecords);
+    expect($DownloadQrCodeBulkAction->getSelectedRecords())->toBe($customRecords);
 
     $livewire = new class extends Component
     {
@@ -47,7 +46,7 @@ it('fetches selected records from custom collection or parent livewire table and
         }
     };
 
-    $actionWithLivewire = DownloadQrBulkAction::make()->livewire($livewire);
+    $actionWithLivewire = DownloadQrCodeBulkAction::make()->livewire($livewire);
     expect($actionWithLivewire->shouldDeselectRecordsAfterCompletion())->toBeTrue()
         ->and($actionWithLivewire->getSelectedRecords()->all())->toBe([['id' => 10, 'qr' => 'from-livewire']]);
 
@@ -55,21 +54,21 @@ it('fetches selected records from custom collection or parent livewire table and
     expect($actionWithLivewire->shouldDeselectRecordsAfterCompletion())->toBeFalse();
 });
 
-it('resolves zip filename via filename, zipFilename, and archiveFilename with fallbacks', function (): void {
-    $downloadQrBulkAction = DownloadQrBulkAction::make();
+it('resolves zip filename via filename with fallbacks', function (): void {
+    $DownloadQrCodeBulkAction = DownloadQrCodeBulkAction::make();
 
-    expect($downloadQrBulkAction->filename('my-archive'))->toBe($downloadQrBulkAction)
-        ->and($downloadQrBulkAction->getFilename())->toBe('my-archive.zip')
-        ->and($downloadQrBulkAction->zipFilename('zip-name.zip'))->toBe($downloadQrBulkAction)
-        ->and($downloadQrBulkAction->getZipFilename())->toBe('zip-name.zip')
-        ->and($downloadQrBulkAction->archiveFilename('UPPER.ZIP'))->toBe($downloadQrBulkAction)
-        ->and($downloadQrBulkAction->getArchiveFilename())->toBe('UPPER.ZIP');
+    expect($DownloadQrCodeBulkAction->filename('my-archive'))->toBe($DownloadQrCodeBulkAction)
+        ->and($DownloadQrCodeBulkAction->getFilename())->toBe('my-archive.zip')
+        ->and($DownloadQrCodeBulkAction->filename('zip-name.zip'))->toBe($DownloadQrCodeBulkAction)
+        ->and($DownloadQrCodeBulkAction->getFilename())->toBe('zip-name.zip')
+        ->and($DownloadQrCodeBulkAction->filename('UPPER.ZIP'))->toBe($DownloadQrCodeBulkAction)
+        ->and($DownloadQrCodeBulkAction->getFilename())->toBe('UPPER.ZIP');
 
-    $downloadQrBulkAction->filename('');
-    expect($downloadQrBulkAction->getFilename())->toBe('qrcodes.zip');
+    $DownloadQrCodeBulkAction->filename('');
+    expect($DownloadQrCodeBulkAction->getFilename())->toBe('qrcodes.zip');
 
-    $downloadQrBulkAction->filename(fn (): int => 2026);
-    expect($downloadQrBulkAction->getFilename())->toBe('2026.zip');
+    $DownloadQrCodeBulkAction->filename(fn (): int => 2026);
+    expect($DownloadQrCodeBulkAction->getFilename())->toBe('2026.zip');
 
     $stringable = new class implements Stringable
     {
@@ -78,21 +77,21 @@ it('resolves zip filename via filename, zipFilename, and archiveFilename with fa
             return 'str-archive';
         }
     };
-    $downloadQrBulkAction->filename(fn (): Stringable => $stringable);
-    expect($downloadQrBulkAction->getFilename())->toBe('str-archive.zip');
+    $DownloadQrCodeBulkAction->filename(fn (): Stringable => $stringable);
+    expect($DownloadQrCodeBulkAction->getFilename())->toBe('str-archive.zip');
 
-    $downloadQrBulkAction->filename(fn (): array => ['bad']);
-    expect($downloadQrBulkAction->getFilename())->toBe('qrcodes.zip');
+    $DownloadQrCodeBulkAction->filename(fn (): array => ['bad']);
+    expect($DownloadQrCodeBulkAction->getFilename())->toBe('qrcodes.zip');
 });
 
 it('resolves qr payload for closure, Eloquent model, array, stdClass, scalar, and null', function (): void {
-    $action = DownloadQrBulkAction::make();
+    $action = DownloadQrCodeBulkAction::make();
 
-    $downloadQrBulkAction = $action->payload(fn ($record): string => "bulk-{$record['id']}");
-    expect($downloadQrBulkAction)->toBe($action)
+    $DownloadQrCodeBulkAction = $action->payload(fn ($record): string => "bulk-{$record['id']}");
+    expect($DownloadQrCodeBulkAction)->toBe($action)
         ->and($action->getQrPayload(['id' => 12]))->toBe('bulk-12');
 
-    $action = DownloadQrBulkAction::make();
+    $action = DownloadQrCodeBulkAction::make();
 
     $m1 = new Record(['qr' => 'model-qr']);
     expect($action->getQrPayload($m1))->toBe('model-qr');
@@ -122,15 +121,19 @@ it('resolves qr payload for closure, Eloquent model, array, stdClass, scalar, an
         ->and($action->getQrPayload((object) ['id' => 44]))
         ->toBe('44')
         ->and($action->getQrPayload((object) ['other' => 'x']))
-        ->toBe('')
+        ->toBeNull()
         ->and($action->getQrPayload('raw-scalar'))
         ->toBe('raw-scalar')
         ->and($action->getQrPayload(null))
         ->toBeNull();
+
+    // Static string payload()
+    $staticAction = DownloadQrCodeBulkAction::make()->payload('https://linkx.tr');
+    expect($staticAction->getQrPayload(['id' => 1]))->toBe('https://linkx.tr');
 });
 
 it('resolves record filename and entry filename across all branches', function (): void {
-    $action = DownloadQrBulkAction::make();
+    $action = DownloadQrCodeBulkAction::make();
 
     $stringable = new class implements Stringable
     {
@@ -140,11 +143,11 @@ it('resolves record filename and entry filename across all branches', function (
         }
     };
 
-    // Custom recordFilename / entryFilename closure
+    // Custom recordFilename closure
     expect($action->recordFilename(fn (array $record, int $index, string $format): string => "rec-{$record['id']}-{$index}-{$format}"))->toBe($action)
         ->and($action->getRecordFilename(['id' => 1]))->toBe('rec-1-1-svg');
 
-    expect($action->entryFilename(fn (): int => 505))->toBe($action)
+    expect($action->recordFilename(fn (): int => 505))->toBe($action)
         ->and($action->getRecordFilename(['id' => 1], 2))->toBe('505');
 
     $action->recordFilename(fn (): Stringable => $stringable);
@@ -154,7 +157,7 @@ it('resolves record filename and entry filename across all branches', function (
     expect($action->getRecordFilename(['id' => 1], 3))->toBe('qrcode_3');
 
     // Without custom callback
-    $action = DownloadQrBulkAction::make();
+    $action = DownloadQrCodeBulkAction::make();
 
     // Model with key and Model without key
     $savedModel = Record::create(['name' => 'Saved']);
@@ -205,9 +208,9 @@ it('executes download qr bulk action, skips empty payloads while incrementing in
         ['qr' => 'https://example.com/third'],
     ]);
 
-    $downloadQrBulkAction = DownloadQrBulkAction::make()
+    $DownloadQrCodeBulkAction = DownloadQrCodeBulkAction::make()
         ->records($records)
-        ->archiveFilename(function (): string {
+        ->filename(function (): string {
             clearstatcache(true, (string) $GLOBALS['lastTempnamFile']);
             expect(filesize((string) $GLOBALS['lastTempnamFile']))->toBeGreaterThan(0);
 
@@ -227,7 +230,7 @@ it('executes download qr bulk action, skips empty payloads while incrementing in
         ->qrEncoding('UTF-8');
 
     /** @var StreamedResponse $response */
-    $response = $downloadQrBulkAction->call();
+    $response = $DownloadQrCodeBulkAction->call();
 
     expect($response)->toBeInstanceOf(StreamedResponse::class)
         ->and($response->headers->get('content-type'))->toBe('application/zip')
@@ -262,11 +265,11 @@ it('unlinks temporary file and returns null when all records have empty payloads
         ['id' => 2, 'qr' => ''],
     ]);
 
-    $downloadQrBulkAction = DownloadQrBulkAction::make()
+    $DownloadQrCodeBulkAction = DownloadQrCodeBulkAction::make()
         ->records($records)
         ->payload(fn ($record) => $record['qr']);
 
-    $response = $downloadQrBulkAction->call();
+    $response = $DownloadQrCodeBulkAction->call();
 
     expect($response)->toBeNull()
         ->and($GLOBALS['lastUnlinkedFile'])->toBeString()
@@ -277,18 +280,18 @@ it('unlinks temporary file and returns null when all records have empty payloads
 it('throws RuntimeException when tempnam fails', function (): void {
     $GLOBALS['mockTempnamFalse'] = true;
 
-    $downloadQrBulkAction = DownloadQrBulkAction::make();
+    $DownloadQrCodeBulkAction = DownloadQrCodeBulkAction::make();
 
-    expect(fn (): ?StreamedResponse => $downloadQrBulkAction->downloadZip(new Collection([['qr' => 'test']])))
+    expect(fn (): ?StreamedResponse => $DownloadQrCodeBulkAction->downloadZip(new Collection([['qr' => 'test']])))
         ->toThrow(RuntimeException::class, 'Failed to create temporary file for ZIP archive.');
 });
 
 it('throws RuntimeException when ZipArchive open fails', function (): void {
     $GLOBALS['mockTempnamPath'] = sys_get_temp_dir();
 
-    $downloadQrBulkAction = DownloadQrBulkAction::make();
+    $DownloadQrCodeBulkAction = DownloadQrCodeBulkAction::make();
 
-    expect(fn (): ?StreamedResponse => $downloadQrBulkAction->downloadZip(new Collection([['qr' => 'test']])))
+    expect(fn (): ?StreamedResponse => $DownloadQrCodeBulkAction->downloadZip(new Collection([['qr' => 'test']])))
         ->toThrow(RuntimeException::class, 'Failed to initialize ZIP archive.');
 });
 it('initializes zip archive with overwrite flag when temp file already contains bytes', function (): void {
@@ -296,8 +299,8 @@ it('initializes zip archive with overwrite flag when temp file already contains 
     file_put_contents($temp, 'pre-existing-non-zip-data');
     $GLOBALS['mockTempnamPath'] = $temp;
 
-    $downloadQrBulkAction = DownloadQrBulkAction::make();
-    $response = $downloadQrBulkAction->downloadZip(new Collection([['qr' => 'https://example.com']]));
+    $DownloadQrCodeBulkAction = DownloadQrCodeBulkAction::make();
+    $response = $DownloadQrCodeBulkAction->downloadZip(new Collection([['qr' => 'https://example.com']]));
 
     expect($response)->toBeInstanceOf(StreamedResponse::class);
 
@@ -306,4 +309,33 @@ it('initializes zip archive with overwrite flag when temp file already contains 
     $content = (string) ob_get_clean();
 
     expect(substr($content, 0, 4))->toBe("PK\x03\x04");
+});
+
+it('forwards configureQrUsing with per-record injection on bulk download action', function (): void {
+    $records = new Collection([
+        ['id' => 1, 'qr' => 'https://linkx.tr/one', 'custom_size' => 210],
+        ['id' => 2, 'qr' => 'https://linkx.tr/two', 'custom_size' => 260],
+    ]);
+
+    $action = DownloadQrCodeBulkAction::make()
+        ->records($records)
+        ->configureQrUsing(fn (Generator $qr, array $record): Generator => $qr->size((int) $record['custom_size']));
+
+    /** @var StreamedResponse $response */
+    $response = $action->call();
+
+    ob_start();
+    $response->sendContent();
+    $binaryContent = (string) ob_get_clean();
+
+    $tempZip = tempnam(sys_get_temp_dir(), 'verify_config_zip_');
+    file_put_contents($tempZip, $binaryContent);
+
+    $zip = new ZipArchive;
+    expect($zip->open($tempZip))->toBeTrue()
+        ->and($zip->getFromName('1.svg'))->toContain('width="210"')
+        ->and($zip->getFromName('2.svg'))->toContain('width="260"');
+
+    $zip->close();
+    @unlink($tempZip);
 });

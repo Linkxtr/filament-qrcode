@@ -1,5 +1,5 @@
 {
-  "name": "linkxtr/filament-qr",
+  "name": "linkxtr/filament-qrcode",
   "description": "A clean, modern Filament plugin to generate, render, style, and export QR codes powered by linkxtr/laravel-qrcode",
   "license": "MIT",
   "keywords": [
@@ -17,7 +17,7 @@
       "homepage": "https://github.com/khaled-sadek"
     }
   ],
-  "homepage": "https://github.com/Linkxtr/filament-qr",
+  "homepage": "https://linkx.tr",
   "require": {
     "php": "^8.4",
     "filament/filament": "^5.0",
@@ -39,12 +39,12 @@
   "prefer-stable": true,
   "autoload": {
     "psr-4": {
-      "Linkxtr\\FilamentQr\\": "src/"
+      "Linkxtr\\FilamentQrCode\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "Linkxtr\\FilamentQr\\Tests\\": "tests/"
+      "Linkxtr\\FilamentQrCode\\Tests\\": "tests/"
     }
   },
   "config": {
@@ -58,7 +58,7 @@
   "extra": {
     "laravel": {
       "providers": [
-        "Linkxtr\\FilamentQr\\FilamentQrServiceProvider"
+        "Linkxtr\\FilamentQrCode\\FilamentQrCodeServiceProvider"
       ]
     }
   },
@@ -78,8 +78,8 @@
     ],
     "test:lint": "pint --parallel --test",
     "test:refactor": "rector --dry-run",
-    "test:type-coverage": "pest --type-coverage --compact --coverage --min=100",
-    "test:types": "phpstan analyse --ansi",
+    "test:type-coverage": "pest --type-coverage --compact --min=100 --memory-limit=512M",
+    "test:types": "phpstan analyse --ansi --memory-limit=512M",
     "test:unit": "pest --parallel --colors=always --coverage --min=100 --coverage-clover build/logs/clover.xml"
   }
 }

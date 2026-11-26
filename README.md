@@ -1,12 +1,12 @@
-# Filament QR
+# Filament QR Code
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/linkxtr/filament-qr.svg?style=flat-square)](https://packagist.org/packages/linkxtr/filament-qr)
-[![Total Downloads](https://img.shields.io/packagist/dt/linkxtr/filament-qr.svg?style=flat-square)](https://packagist.org/packages/linkxtr/filament-qr)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/linkxtr/filament-qr/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/linkxtr/filament-qr/actions?query=workflow%3Arun-tests+branch%3Amain)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/linkxtr/filament-qrcode.svg?style=flat-square)](https://packagist.org/packages/linkxtr/filament-qrcode)
+[![Total Downloads](https://img.shields.io/packagist/dt/linkxtr/filament-qrcode.svg?style=flat-square)](https://packagist.org/packages/linkxtr/filament-qrcode)
+[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/linkxtr/filament-qrcode/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/linkxtr/filament-qrcode/actions?query=workflow%3Arun-tests+branch%3Amain)
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
-[![PHP Version](https://img.shields.io/badge/PHP-8.2%20%7C%208.3%20%7C%208.4-blue.svg?style=flat-square)](https://php.net)
-[![Laravel Version](https://img.shields.io/badge/Laravel-10%20%7C%2011-red.svg?style=flat-square)](https://laravel.com)
-[![Filament Version](https://img.shields.io/badge/Filament-3-orange.svg?style=flat-square)](https://filamentphp.com)
+[![PHP Version](https://img.shields.io/badge/PHP-8.4%20%7C%208.5-blue.svg?style=flat-square)](https://php.net)
+[![Laravel Version](https://img.shields.io/badge/Laravel-12%20%7C%2013-red.svg?style=flat-square)](https://laravel.com)
+[![Filament Version](https://img.shields.io/badge/Filament-5-orange.svg?style=flat-square)](https://filamentphp.com)
 
 A clean, modern Filament plugin to generate, render, style, and export QR codes powered by [`linkxtr/laravel-qrcode`](https://github.com/Linkxtr/laravel-qrcode).
 
@@ -19,11 +19,12 @@ Seamlessly embed dynamic QR codes inside **Filament Table Columns**, display ric
 - **Table Column (`QrCodeColumn`)**: Inline preview, responsive sizing, dark mode support, title tooltip, and instant click-to-preview or download.
 - **Infolist Entry (`QrCodeEntry`)**: High-fidelity QR code display in view pages, infolist schemas, and slide-overs with state readout.
 - **Form Preview Field (`QrCodeField`)**: Reactive live preview cards in Filament form schemas, dark mode compatible layout, dynamic live updates, and built-in copy and download buttons.
-- **Table Actions (`DownloadQrAction` & `DownloadQrBulkAction`)**: Single-record streaming downloads and multi-record ZIP archives in SVG, PNG, or WebP.
+- **Table Actions (`DownloadQrCodeAction` & `DownloadQrCodeBulkAction`)**: Single-record streaming downloads and multi-record ZIP archives in SVG, PNG, or WebP.
 - **Fluent Styling**: Custom dimensions, quiet-zone margins, error correction levels (L, M, Q, H), and brand color palette tokens (`primary`, `success`, `danger`, `warning`, `info`, `gray`, or hex).
 - **Advanced Aesthetics**: Linear gradients, custom finder eye inner/outer colors, and embedded logo images.
-- **Built-in Payload Helpers**: Fluent formatters for Wi-Fi credentials, URLs, emails, SMS, and custom closures.
-- **Multi-Version Compatibility**: Supports **PHP 8.2 through 8.4**, **Laravel 10 and 11**, and **Filament 3**.
+- **Direct `laravel-qrcode` Escape Hatch (`configureQrUsing()`)**: Access the live `Linkxtr\QrCode\Generator` instance at render time for any advanced feature (`cmyk()`, `gray()`, `cache()`, `withoutCache()`, custom macros) without API duplication.
+- **First-Class `laravel-qrcode` DataTypes**: Pass any `Stringable` DataType from `linkxtr/laravel-qrcode` (`WiFi`, `VCard`, `MeCard`, `Email`, `PhoneNumber`, `SMS`, `WhatsApp`, `Telegram`, `Geo`, `CalendarEvent`, `BTC`, `Ethereum`) directly into `payload()` or `formatPayloadUsing()`.
+- **Multi-Version Compatibility**: Supports **PHP 8.4 and 8.5**, **Laravel 12 and 13**, and **Filament 5**.
 
 ---
 
@@ -32,19 +33,19 @@ Seamlessly embed dynamic QR codes inside **Filament Table Columns**, display ric
 Install the package via Composer:
 
 ```bash
-composer require linkxtr/filament-qr
+composer require linkxtr/filament-qrcode
 ```
 
 ### 1. Panel Plugin Registration
 
-Register the `FilamentQrPlugin` in your Filament Panel configuration provider (usually `app/Providers/Filament/AdminPanelProvider.php`):
+Register the `FilamentQrCodePlugin` in your Filament Panel configuration provider (usually `app/Providers/Filament/AdminPanelProvider.php`):
 
 ```php
 namespace App\Providers\Filament;
 
 use Filament\Panel;
 use Filament\PanelProvider;
-use Linkxtr\FilamentQr\FilamentQrPlugin;
+use Linkxtr\FilamentQrCode\FilamentQrCodePlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -54,7 +55,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->plugin(FilamentQrPlugin::make());
+            ->plugin(FilamentQrCodePlugin::make());
     }
 }
 ```
@@ -64,10 +65,10 @@ class AdminPanelProvider extends PanelProvider
 Publish the configuration file to customize package-wide defaults:
 
 ```bash
-php artisan vendor:publish --tag="filament-qr-config"
+php artisan vendor:publish --tag="filament-qrcode-config"
 ```
 
-This creates `config/filament-qr.php`:
+This creates `config/filament-qrcode.php`:
 
 ```php
 return [
@@ -91,7 +92,7 @@ return [
 If you need to customize the HTML or Tailwind layout of columns or infolists, publish the views:
 
 ```bash
-php artisan vendor:publish --tag="filament-qr-views"
+php artisan vendor:publish --tag="filament-qrcode-views"
 ```
 
 ---
@@ -106,7 +107,7 @@ Add a QR code column directly to any Filament Resource table schema:
 namespace App\Filament\Resources\OrderResource\Pages;
 
 use Filament\Tables\Table;
-use Linkxtr\filamentQr\Tables\Columns\QrCodeColumn;
+use Linkxtr\FilamentQrCode\Tables\Columns\QrCodeColumn;
 
 public function table(Table $table): Table
 {
@@ -124,15 +125,15 @@ public function table(Table $table): Table
 #### Custom Sizing, Margins & Error Correction
 
 ```php
-use Linkxtr\FilamentQr\Enums\ErrorCorrectionLevel;
-use Linkxtr\FilamentQr\Enums\QrFormat;
-use Linkxtr\FilamentQr\Tables\Columns\QrCodeColumn;
+use Linkxtr\FilamentQrCode\Tables\Columns\QrCodeColumn;
+use Linkxtr\QrCode\Enums\ErrorCorrectionLevel;
+use Linkxtr\QrCode\Enums\Format;
 
 QrCodeColumn::make('ticket_uuid')
     ->qrSize(140)
     ->qrMargin(2)
-    ->qrFormat(QrFormat::Svg) // or 'png', 'webp'
-    ->qrErrorCorrection(ErrorCorrectionLevel::High); // 'L', 'M', 'Q', 'H'
+    ->qrFormat(Format::SVG) // or 'png', 'webp', 'eps'
+    ->qrErrorCorrection(ErrorCorrectionLevel::H); // 'L', 'M', 'Q', 'H'
 ```
 
 #### Color Tokens, Hex Values & Gradients
@@ -162,6 +163,22 @@ QrCodeColumn::make('custom_url')
     ->payload(fn ($record) => route('orders.show', $record));
 ```
 
+#### Advanced Generator Customization (`configureQrUsing`)
+
+Every component and action (`QrCodeColumn`, `QrCodeEntry`, `QrCodeField`, `DownloadQrCodeAction`, `DownloadQrCodeBulkAction`) provides `configureQrUsing(Closure $callback)` to configure the live `Linkxtr\QrCode\Generator` directly at render time. Use it to invoke any `laravel-qrcode` feature (`cmyk()`, `gray()`, `cache()`, `withoutCache()`, custom macros, etc.) without duplicating the generator API:
+
+```php
+use Linkxtr\FilamentQrCode\Tables\Columns\QrCodeColumn;
+use Linkxtr\QrCode\Generator;
+
+QrCodeColumn::make('invoice_url')
+    ->configureQrUsing(fn (Generator $qr, $record): Generator => $qr
+        ->gray(20, 95)
+        ->cache(3600));
+```
+
+> **Note:** `Linkxtr\QrCode\Generator` is immutable — return the modified `Generator` instance from your closure. Filament closure injection supports `$qr`, `$generator`, typed `Generator`, and `$record`.
+
 ---
 
 ### 2. Infolist Entries (`QrCodeEntry`)
@@ -172,7 +189,8 @@ Display QR codes in View/Edit Resource pages or slide-over modals:
 namespace App\Filament\Resources\DeviceResource\Pages;
 
 use Filament\Infolists\Infolist;
-use Linkxtr\FilamentQr\Infolists\Entries\QrCodeEntry;
+use Linkxtr\FilamentQrCode\Infolists\Entries\QrCodeEntry;
+use Linkxtr\QrCode\DataTypes\WiFi;
 
 public function infolist(Infolist $infolist): Infolist
 {
@@ -182,15 +200,15 @@ public function infolist(Infolist $infolist): Infolist
                 ->label('Device Provisioning QR')
                 ->qrSize(260)
                 ->qrColor('#1e293b')
-                ->asWifi(
-                    ssid: fn ($record) => $record->ssid,
-                    password: fn ($record) => $record->wpa_key
-                ),
+                ->payload(fn ($record): WiFi => new WiFi(
+                    ssid: $record->ssid,
+                    password: $record->wpa_key,
+                )),
         ]);
 }
 ```
 
-The `QrCodeEntry` component inherits the exact same fluent styling and formatting traits (`HasQrCodeStyling`, `HasPayloadFormatters`) as `QrCodeColumn`.
+The `QrCodeEntry` component inherits the exact same fluent styling and payload traits (`HasQrCodeStyling`, `HasPayload`) as `QrCodeColumn`.
 
 ---
 
@@ -204,7 +222,7 @@ namespace App\Filament\Resources\CampaignResource\Pages;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
-use Linkxtr\FilamentQr\Forms\Components\QrCodeField;
+use Linkxtr\FilamentQrCode\Forms\Components\QrCodeField;
 
 public function form(Form $form): Form
 {
@@ -218,9 +236,9 @@ public function form(Form $form): Form
             QrCodeField::make('qr_preview')
                 ->label('Dynamic QR Preview')
                 ->payload(fn (Get $get): string => (string) ($get('target_url') ?: 'https://linkxtr.io'))
-                ->size(200)
-                ->margin(2)
-                ->color('primary')
+                ->qrSize(200)
+                ->qrMargin(2)
+                ->qrColor('primary')
                 ->downloadable()
                 ->copyable(),
         ]);
@@ -229,19 +247,19 @@ public function form(Form $form): Form
 
 #### Fluent Styling & Reactive Helpers
 
-`QrCodeField` supports intuitive, concise styling methods:
+`QrCodeField` uses the same canonical `HasQrCodeStyling` methods as `QrCodeColumn` and `QrCodeEntry`:
 
 ```php
 QrCodeField::make('qr')
     ->payload('https://linkxtr.io')
-    ->size(220)
-    ->margin(2)
-    ->format('svg') // svg, png, webp, eps
-    ->color('#0f172a')
-    ->backgroundColor('#f8fafc')
-    ->gradient(from: '#0284c7', to: '#4f46e5', type: 'vertical')
-    ->eye(\Linkxtr\QrCode\Enums\EyeStyle::CIRCLE)
-    ->style(\Linkxtr\QrCode\Enums\Style::ROUND, 0.75)
+    ->qrSize(220)
+    ->qrMargin(2)
+    ->qrFormat('svg') // svg, png, webp, eps
+    ->qrColor('#0f172a')
+    ->qrBackgroundColor('#f8fafc')
+    ->qrGradient(from: '#0284c7', to: '#4f46e5', type: 'vertical')
+    ->qrEyeStyle(\Linkxtr\QrCode\Enums\EyeStyle::CIRCLE)
+    ->qrStyle(\Linkxtr\QrCode\Enums\Style::ROUND, 0.75)
     ->downloadable()
     ->copyable();
 ```
@@ -250,19 +268,19 @@ QrCodeField::make('qr')
 
 ### 4. Table Actions
 
-#### Single-Record Action (`DownloadQrAction`)
+#### Single-Record Action (`DownloadQrCodeAction`)
 
 Add a row action to your table allowing users to instantly download an SVG, PNG, or WebP QR code:
 
 ```php
 use Filament\Tables\Table;
-use Linkxtr\FilamentQr\Actions\DownloadQrAction;
+use Linkxtr\FilamentQrCode\Actions\DownloadQrCodeAction;
 
 public function table(Table $table): Table
 {
     return $table
         ->actions([
-            DownloadQrAction::make()
+            DownloadQrCodeAction::make()
                 ->filename(fn ($record) => "qr-order-{$record->id}")
                 ->qrFormat('svg')
                 ->qrSize(400)
@@ -271,20 +289,20 @@ public function table(Table $table): Table
 }
 ```
 
-#### Bulk Action (`DownloadQrBulkAction`)
+#### Bulk Action (`DownloadQrCodeBulkAction`)
 
 Allow administrators to select multiple records in a table and download a combined `.zip` file containing individual QR codes:
 
 ```php
 use Filament\Tables\Table;
-use Linkxtr\FilamentQr\Actions\DownloadQrBulkAction;
+use Linkxtr\FilamentQrCode\Actions\DownloadQrCodeBulkAction;
 
 public function table(Table $table): Table
 {
     return $table
         ->bulkActions([
-            DownloadQrBulkAction::make()
-                ->archiveFilename('exported-tickets')
+            DownloadQrCodeBulkAction::make()
+                ->filename('exported-tickets')
                 ->qrFormat('png')
                 ->qrSize(500)
                 ->qrColor('#000000'),
@@ -294,17 +312,44 @@ public function table(Table $table): Table
 
 ---
 
-## Payload Formatters Reference
+## Payload & `laravel-qrcode` DataTypes
 
-Both `QrCodeColumn`, `QrCodeEntry`, and `DownloadQrAction` share fluent payload helper methods:
+All components and actions (`QrCodeColumn`, `QrCodeEntry`, `QrCodeField`, `DownloadQrCodeAction`, and `DownloadQrCodeBulkAction`) share the `HasPayload` trait, accepting any `string`, `Stringable` (including every DataType from [`linkxtr/laravel-qrcode`](https://github.com/Linkxtr/laravel-qrcode)), or `Closure`:
 
-| Method | Parameters | Output Payload |
+| Method | Signature | Description |
 |---|---|---|
-| `asUrl($url)` | `string \| Closure $url` | Direct URL string |
-| `asWifi($ssid, $password, $encryption, $hidden)` | `ssid`, `password = null`, `encryption = 'WPA'`, `hidden = false` | Standard `WIFI:S:...;T:...;P:...;H:...;;` format |
-| `asEmail($email, $subject, $body)` | `email`, `subject = null`, `body = null` | `mailto:name@example.com?subject=...` |
-| `asSms($phone, $message)` | `phone`, `message = null` | `smsto:+123456789:Message` |
-| `formatPayloadUsing($callback)` | `Closure $callback` | Custom string returned by closure |
+| `payload()` | `string \| Stringable \| Closure \| null $payload` | Resolves the raw payload string or `Stringable` DataType. |
+| `formatPayloadUsing()` | `Closure $callback` | Transforms the resolved state or payload into a `string` or `Stringable` DataType. |
+
+### Using `linkxtr/laravel-qrcode` DataTypes Directly
+
+```php
+use Linkxtr\FilamentQrCode\Tables\Columns\QrCodeColumn;
+use Linkxtr\QrCode\DataTypes\Email;
+use Linkxtr\QrCode\DataTypes\PhoneNumber;
+use Linkxtr\QrCode\DataTypes\VCard;
+use Linkxtr\QrCode\DataTypes\WhatsApp;
+use Linkxtr\QrCode\DataTypes\WiFi;
+
+// Pass a DataType via payload()
+QrCodeColumn::make('wifi_qr')
+    ->payload(fn (Router $record): WiFi => new WiFi(
+        ssid: $record->ssid,
+        password: $record->password,
+    ));
+
+// Or transform an existing column state via formatPayloadUsing()
+QrCodeColumn::make('phone')
+    ->formatPayloadUsing(fn (string $state): PhoneNumber => new PhoneNumber($state));
+
+// Works with VCard, Email, WhatsApp, SMS, Geo, CalendarEvent, BTC, Ethereum, Telegram, MeCard, etc.
+QrCodeColumn::make('contact_qr')
+    ->payload(fn (Contact $record): VCard => new VCard(
+        name: $record->name,
+        phone: $record->phone,
+        email: $record->email,
+    ));
+```
 
 ---
 
@@ -316,13 +361,14 @@ Every component implementing `HasQrCodeStyling` supports the following fluent me
 |---|---|---|
 | `qrSize()` | `int \| Closure $size` | Size in pixels (default: `160`). |
 | `qrMargin()` | `int \| Closure $margin` | Quiet-zone margin in modules (default: `1`). |
-| `qrFormat()` | `QrFormat \| string \| Closure $format` | `svg`, `png`, or `webp` (default: `svg`). |
+| `qrFormat()` | `Format \| string \| Closure $format` | `svg`, `png`, `webp`, or `eps` (default: `svg`). |
 | `qrErrorCorrection()` | `ErrorCorrectionLevel \| string \| Closure $level` | `L` (7%), `M` (15%), `Q` (25%), or `H` (30%). |
 | `qrColor()` | `string \| Closure $color` | Foreground color (HEX string or Filament token). |
 | `qrBackgroundColor()` | `string \| Closure $color` | Background color (HEX string or Filament token). |
-| `qrGradient()` | `string $from, string $to, string $type = 'vertical'` | Linear gradient with starting/ending colors. |
-| `qrEyeColor()` | `int $eyeIndex, string $inner, string $outer` | Custom colors for finder eyes (`0`, `1`, or `2`). |
+| `qrGradient()` | `string $from, string $to, GradientType \| string $type = 'vertical'` | Linear gradient with starting/ending colors. |
+| `qrEyeColor()` | `int $eyeIndex, string $inner, ?string $outer = null` | Custom colors for finder eyes (`0`, `1`, or `2`). |
 | `qrLogo()` | `string \| Closure $path, float \| Closure $size = 0.2` | Overlay logo image path and relative scaling. |
+| `configureQrUsing()` | `Closure $callback` | Receives the live `Linkxtr\QrCode\Generator` (`$qr`, `$generator`, `$record`) for any advanced `laravel-qrcode` feature (`cmyk()`, `gray()`, `cache()`, macros). |
 
 ### Component-Specific Methods
 
@@ -330,40 +376,42 @@ Every component implementing `HasQrCodeStyling` supports the following fluent me
   - `downloadable(bool | Closure $condition = true)`: Enables instant file download on click.
   - `previewable(bool | Closure $condition = true)`: Enables click-to-preview behavior.
   - `payload(Closure $callback)`: Overrides the record field resolver for the raw payload.
-- **`DownloadQrAction`**:
+- **`DownloadQrCodeAction`**:
   - `filename(string $name)`: Base filename without extension for single download.
-- **`DownloadQrBulkAction`**:
-  - `archiveFilename(string $name)`: Base name for the generated `.zip` file.
+- **`DownloadQrCodeBulkAction`**:
+  - `filename(string | Closure $name)`: Base name for the generated `.zip` file.
+  - `recordFilename(string | Closure $callback)`: Custom filename per record entry inside the `.zip` archive.
 
 ---
 
-## v0.1.0 Release Notes & Packagist Checklist
+## v1.0.0 Release Notes & Packagist Checklist
 
-### Release Highlights (v0.1.0)
+### Release Highlights (v1.0.0)
 
-- Initial release of `linkxtr/filament-qr`.
-- First-class support for **Filament 3** on **Laravel 10 and 11**.
+- Initial stable release of `linkxtr/filament-qrcode`.
+- First-class support for **Filament 5** on **Laravel 12 and 13** (**PHP 8.4 and 8.5**).
 - Powered by `linkxtr/laravel-qrcode` v3.x.
 - Zero-configuration table column (`QrCodeColumn`) with dark mode support.
 - Rich infolist entry (`QrCodeEntry`) with mono-font payload inspector.
-- Single and bulk download actions (`DownloadQrAction` and `DownloadQrBulkAction`).
-- Comprehensive payload helpers for Wi-Fi, URLs, Emails, and SMS.
+- Reactive form preview field (`QrCodeField`) with live updates, copy, and download buttons.
+- Single and bulk download actions (`DownloadQrCodeAction` and `DownloadQrCodeBulkAction`).
+- Full `Stringable` DataType delegation to `linkxtr/laravel-qrcode` via `payload()` and `formatPayloadUsing()`.
 - Full SVG, PNG, and WebP rendering pipeline with gradients, eye styling, and logos.
 
 ### Packagist Submission Checklist
 
-- [x] Canonical package name `linkxtr/filament-qr` registered in `composer.json`.
-- [x] Semantic versioning Git tag `v0.1.0` applied.
+- [x] Canonical package name `linkxtr/filament-qrcode` registered in `composer.json`.
+- [x] Semantic versioning Git tag `v1.0.0` ready.
 - [x] Auto-discovery service provider configured under `extra.laravel.providers`.
-- [x] PHP compatibility matrix validated (`^8.2 || ^8.3 || ^8.4`).
-- [x] Laravel dependency configured for versions `^10.0 || ^11.0`.
+- [x] PHP compatibility matrix validated (`^8.4`).
+- [x] Filament 5 and `linkxtr/laravel-qrcode: ^3.0` dependencies configured.
 - [x] Packagist GitHub webhook configured for automated release publishing.
 
 ---
 
 ## Strategic Roadmap
 
-`linkxtr/filament-qr` is actively developed across four strategic waves:
+`linkxtr/filament-qrcode` is actively developed across four strategic waves:
 
 - **Wave 1 (v1.1) - Form Live QR Preview Component**: `QrCodeField` with reactive schema updating (`live()`), card presentation, zoom modal preview, and one-click download/copy buttons. *(Released)*
 - **Wave 2 (v1.2) - Interactive QR Customizer**: In-form visual design studio for real-time module styles, eye shapes, gradient presets, and logo uploads. *(Planned)*

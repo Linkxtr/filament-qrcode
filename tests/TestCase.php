@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Linkxtr\FilamentQr\Tests;
+namespace Linkxtr\FilamentQrCode\Tests;
 
 use BladeUI\Heroicons\BladeHeroiconsServiceProvider;
 use BladeUI\Icons\BladeIconsServiceProvider;
@@ -15,7 +15,7 @@ use Filament\Support\SupportServiceProvider;
 use Filament\Tables\TablesServiceProvider;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Linkxtr\FilamentQr\FilamentQrServiceProvider;
+use Linkxtr\FilamentQrCode\FilamentQrCodeServiceProvider;
 use Linkxtr\QrCode\QrCodeServiceProvider;
 use Livewire\LivewireServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
@@ -52,7 +52,7 @@ class TestCase extends Orchestra
             ActionsServiceProvider::class,
             QrCodeServiceProvider::class,
             FilamentServiceProvider::class,
-            FilamentQrServiceProvider::class,
+            FilamentQrCodeServiceProvider::class,
         ];
     }
 

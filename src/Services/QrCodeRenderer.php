@@ -2,230 +2,109 @@
 
 declare(strict_types=1);
 
-namespace Linkxtr\FilamentQr\Services;
+namespace Linkxtr\FilamentQrCode\Services;
 
-use Imagick;
-use Linkxtr\QrCode\Enums\ErrorCorrectionLevel;
+use BaconQrCode\Renderer\RendererStyle\Gradient;
+use Closure;
+use Linkxtr\QrCode\DTOs\Config;
 use Linkxtr\QrCode\Enums\EyeStyle;
-use Linkxtr\QrCode\Enums\Format;
-use Linkxtr\QrCode\Enums\GradientType;
-use Linkxtr\QrCode\Enums\Style;
 use Linkxtr\QrCode\Facades\QrCode;
-use Linkxtr\QrCode\ValueObjects\Colors\Rgb;
-use Throwable;
+use Linkxtr\QrCode\Generator;
 
 final class QrCodeRenderer
 {
     /**
      * Render the given payload as raw output (raw SVG string or binary image).
-     *
-     * @param  array{from: string, to: string, type?: GradientType|string}|null  $gradient
-     * @param  array<int, array{inner: string, outer?: string|null}>|null  $eyeColors
      */
-    public function renderRaw(
-        string $payload,
-        int $size = 160,
-        int $margin = 1,
-        Format|string $format = 'svg',
-        ErrorCorrectionLevel|string $errorCorrection = 'M',
-        string $color = '#000000',
-        string $backgroundColor = '#ffffff',
-        ?array $gradient = null,
-        ?array $eyeColors = null,
-        EyeStyle|string|null $eyeStyle = null,
-        EyeStyle|string|null $internalEyeStyle = null,
-        Style|string|null $style = null,
-        ?float $styleSize = null,
-        ?string $logoPath = null,
-        float $logoSize = 0.2,
-        ?int $dpi = null,
-        ?int $resolution = null,
-        string $encoding = 'UTF-8'
-    ): string {
-        $colorRgb = Rgb::parse($color);
-        $bgRgb = Rgb::parse($backgroundColor);
+    public function renderRaw(string $payload, ?Config $config = null, ?Closure $configureUsing = null): string
+    {
+        $config ??= new Config;
 
-        $builder = QrCode::format($format)
-            ->size($size)
-            ->margin($margin)
-            ->errorCorrection($errorCorrection)
-            ->color($colorRgb->red, $colorRgb->green, $colorRgb->blue)
-            ->backgroundColor($bgRgb->red, $bgRgb->green, $bgRgb->blue);
+        $color = $config->getColorValue()->toRgb();
+        $bg = $config->getBackgroundColorValue()->toRgb();
 
-        if ($gradient) {
-            $from = $gradient['from'];
-            $to = $gradient['to'];
-            $type = $gradient['type'] ?? 'vertical';
-            $builder = $builder->gradient($from, $to, $type);
+        $builder = QrCode::format($config->getFormat())
+            ->size($config->getSize())
+            ->margin($config->getMargin())
+            ->errorCorrection($config->getErrorCorrectionLevel())
+            ->color($color->red, $color->green, $color->blue, $color->alpha)
+            ->backgroundColor($bg->red, $bg->green, $bg->blue, $bg->alpha)
+            ->style($config->getStyle(), $config->getStyleSize());
+
+        $gradient = $config->getGradient();
+        if ($gradient instanceof Gradient) {
+            $start = $gradient->getStartColor()->toRgb();
+            $end = $gradient->getEndColor()->toRgb();
+            $builder = $builder->gradient(
+                [$start->getRed(), $start->getGreen(), $start->getBlue()],
+                [$end->getRed(), $end->getGreen(), $end->getBlue()],
+                strtolower($gradient->getType()->name()),
+            );
         }
 
-        if ($eyeColors) {
-            foreach ($eyeColors as $index => $colors) {
-                $builder = $builder->eyeColor($index, $colors['inner'], $colors['outer'] ?? null);
+        foreach ($config->getEyeColors() as $index => $eyeFill) {
+            $inner = $eyeFill->getExternalColor()->toRgb();
+            $outer = $eyeFill->inheritsInternalColor() ? null : $eyeFill->getInternalColor()->toRgb();
+            $builder = $builder->eyeColor(
+                $index,
+                [$inner->getRed(), $inner->getGreen(), $inner->getBlue()],
+                $outer !== null ? [$outer->getRed(), $outer->getGreen(), $outer->getBlue()] : null,
+            );
+        }
+
+        if ($config->getEyeStyle() instanceof EyeStyle) {
+            $builder = $builder->eye($config->getEyeStyle());
+        }
+
+        if ($config->getInternalEyeStyle() instanceof EyeStyle) {
+            $builder = $builder->internalEye($config->getInternalEyeStyle());
+        }
+
+        if ($config->getEncoding() !== 'UTF-8') {
+            $builder = $builder->encoding($config->getEncoding());
+        }
+
+        if ($config->getImageMerge() !== '') {
+            $builder = $builder->mergeString($config->getImageMerge(), $config->getImagePercentage());
+        }
+
+        if ($configureUsing instanceof Closure) {
+            $configured = $configureUsing($builder);
+
+            if ($configured instanceof Generator) {
+                $builder = $configured;
             }
         }
 
-        if ($eyeStyle) {
-            $eyeVal = $eyeStyle instanceof EyeStyle ? $eyeStyle->value : $eyeStyle;
-            $builder = $builder->eye($eyeVal);
-        }
-
-        if ($internalEyeStyle) {
-            $internalVal = $internalEyeStyle instanceof EyeStyle ? $internalEyeStyle->value : $internalEyeStyle;
-            $builder = $builder->internalEye($internalVal);
-        }
-
-        if ($style) {
-            $styleVal = $style instanceof Style ? $style->value : $style;
-            $builder = $builder->style($styleVal, $styleSize);
-        }
-
-        if ($encoding && $encoding !== 'UTF-8') {
-            $builder = $builder->encoding($encoding);
-        }
-
-        if ($logoPath) {
-            $builder = $builder->merge($logoPath, $logoSize);
-        }
-
-        $output = (string) $builder->generate($payload);
-
-        $formatVal = $format instanceof Format ? $format->value : $format;
-
-        if (($dpi || $resolution) && in_array($formatVal, ['png', 'webp'], true) && extension_loaded('imagick')) {
-            $dpiVal = $dpi ?? $resolution;
-            try {
-                $imagick = new Imagick;
-                $imagick->readImageBlob($output);
-                $imagick->setImageResolution($dpiVal, $dpiVal);
-                $imagick->setImageUnits(Imagick::RESOLUTION_PIXELSPERINCH);
-                $output = $imagick->getImageBlob();
-            } catch (Throwable) {
-                // If Imagick fails, retain original output
-            }
-        }
-
-        return $output;
+        return (string) $builder->generate($payload);
     }
 
     /**
      * Render the given payload as an inline SVG string or base64 data URI.
-     *
-     * @param  array{from: string, to: string, type?: GradientType|string}|null  $gradient
-     * @param  array<int, array{inner: string, outer?: string|null}>|null  $eyeColors
      */
-    public function render(
-        string $payload,
-        int $size = 160,
-        int $margin = 1,
-        Format|string $format = 'svg',
-        ErrorCorrectionLevel|string $errorCorrection = 'M',
-        string $color = '#000000',
-        string $backgroundColor = '#ffffff',
-        ?array $gradient = null,
-        ?array $eyeColors = null,
-        EyeStyle|string|null $eyeStyle = null,
-        EyeStyle|string|null $internalEyeStyle = null,
-        Style|string|null $style = null,
-        ?float $styleSize = null,
-        ?string $logoPath = null,
-        float $logoSize = 0.2,
-        ?int $dpi = null,
-        ?int $resolution = null,
-        string $encoding = 'UTF-8'
-    ): string {
-        $raw = $this->renderRaw(
-            payload: $payload,
-            size: $size,
-            margin: $margin,
-            format: $format,
-            errorCorrection: $errorCorrection,
-            color: $color,
-            backgroundColor: $backgroundColor,
-            gradient: $gradient,
-            eyeColors: $eyeColors,
-            eyeStyle: $eyeStyle,
-            internalEyeStyle: $internalEyeStyle,
-            style: $style,
-            styleSize: $styleSize,
-            logoPath: $logoPath,
-            logoSize: $logoSize,
-            dpi: $dpi,
-            resolution: $resolution,
-            encoding: $encoding
-        );
+    public function render(string $payload, ?Config $config = null, ?Closure $configureUsing = null): string
+    {
+        $config ??= new Config;
+        $raw = $this->renderRaw($payload, $config, $configureUsing);
+        $format = $config->getFormat()->value;
 
-        $formatVal = $format instanceof Format ? $format->value : $format;
-
-        if ($formatVal === 'svg') {
+        if ($format === 'svg') {
             return $raw;
         }
 
-        return 'data:image/'.$formatVal.';base64,'.base64_encode($raw);
+        return 'data:image/'.$format.';base64,'.base64_encode($raw);
     }
 
     /**
      * Render as a data URI regardless of format.
-     *
-     * @param  array{from: string, to: string, type?: GradientType|string}|null  $gradient
-     * @param  array<int, array{inner: string, outer?: string|null}>|null  $eyeColors
      */
-    public function renderDataUri(
-        string $payload,
-        int $size = 160,
-        int $margin = 1,
-        Format|string $format = 'svg',
-        ErrorCorrectionLevel|string $errorCorrection = 'M',
-        string $color = '#000000',
-        string $backgroundColor = '#ffffff',
-        ?array $gradient = null,
-        ?array $eyeColors = null,
-        EyeStyle|string|null $eyeStyle = null,
-        EyeStyle|string|null $internalEyeStyle = null,
-        Style|string|null $style = null,
-        ?float $styleSize = null,
-        ?string $logoPath = null,
-        float $logoSize = 0.2,
-        ?int $dpi = null,
-        ?int $resolution = null,
-        string $encoding = 'UTF-8'
-    ): string {
-        $raw = $this->renderRaw(
-            payload: $payload,
-            size: $size,
-            margin: $margin,
-            format: $format,
-            errorCorrection: $errorCorrection,
-            color: $color,
-            backgroundColor: $backgroundColor,
-            gradient: $gradient,
-            eyeColors: $eyeColors,
-            eyeStyle: $eyeStyle,
-            internalEyeStyle: $internalEyeStyle,
-            style: $style,
-            styleSize: $styleSize,
-            logoPath: $logoPath,
-            logoSize: $logoSize,
-            dpi: $dpi,
-            resolution: $resolution,
-            encoding: $encoding
-        );
-
-        $formatVal = $format instanceof Format ? $format->value : $format;
-        $mime = $formatVal === 'svg' ? 'image/svg+xml' : 'image/'.$formatVal;
+    public function renderDataUri(string $payload, ?Config $config = null, ?Closure $configureUsing = null): string
+    {
+        $config ??= new Config;
+        $raw = $this->renderRaw($payload, $config, $configureUsing);
+        $format = $config->getFormat()->value;
+        $mime = $format === 'svg' ? 'image/svg+xml' : 'image/'.$format;
 
         return 'data:'.$mime.';base64,'.base64_encode($raw);
-    }
-
-    /**
-     * Convert HEX string (#ffffff or #fff) to [r, g, b] array.
-     *
-     * @return array{0: int, 1: int, 2: int}
-     */
-    public function hexToRgb(string $hex): array
-    {
-        $rgb = Rgb::parse($hex);
-
-        return [$rgb->red, $rgb->green, $rgb->blue];
     }
 }

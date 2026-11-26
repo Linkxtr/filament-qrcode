@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Linkxtr\FilamentQr\Concerns;
+namespace Linkxtr\FilamentQrCode\Concerns;
 
 use Closure;
 use Illuminate\Database\Eloquent\Model;
-use Linkxtr\FilamentQr\Services\QrCodeRenderer;
+use Linkxtr\FilamentQrCode\Services\QrCodeRenderer;
 use Stringable;
 use Throwable;
 
@@ -16,7 +16,7 @@ trait HasQrInteractions
 
     protected string|Closure|null $downloadFilename = null;
 
-    protected bool|Closure|null $isClickableToPreview = null;
+    protected bool|Closure|null $isPreviewable = null;
 
     protected int|Closure|null $previewSize = null;
 
@@ -78,25 +78,15 @@ trait HasQrInteractions
 
     public function previewable(bool|Closure $condition = true): static
     {
-        $this->isClickableToPreview = $condition;
+        $this->isPreviewable = $condition;
 
         return $this;
     }
 
     public function isPreviewable(): bool
     {
-        return $this->isClickableToPreview();
-    }
-
-    public function clickableToPreview(bool|Closure $condition = true): static
-    {
-        return $this->previewable($condition);
-    }
-
-    public function isClickableToPreview(): bool
-    {
-        if ($this->isClickableToPreview !== null) {
-            return (bool) $this->evaluate($this->isClickableToPreview);
+        if ($this->isPreviewable !== null) {
+            return (bool) $this->evaluate($this->isPreviewable);
         }
 
         return true;
@@ -116,7 +106,7 @@ trait HasQrInteractions
             return (int) $evaluated;
         }
 
-        $configSize = config('filament-qr.preview.render_size');
+        $configSize = config('filament-qrcode.preview.render_size');
 
         return is_numeric($configSize) ? (int) $configSize : 320;
     }
@@ -171,7 +161,17 @@ trait HasQrInteractions
         return 'Copied to clipboard!';
     }
 
+    public function renderQrCode(): ?string
+    {
+        return $this->renderQrWithSize();
+    }
+
     public function renderPreviewQrCode(): ?string
+    {
+        return $this->renderQrWithSize($this->getPreviewSize());
+    }
+
+    protected function renderQrWithSize(?int $size = null): ?string
     {
         $payload = $this->getQrPayload();
 
@@ -183,24 +183,9 @@ trait HasQrInteractions
         $qrCodeRenderer = app(QrCodeRenderer::class);
 
         return $qrCodeRenderer->render(
-            payload: $payload,
-            size: $this->getPreviewSize(),
-            margin: $this->getQrMargin(),
-            format: $this->getQrFormat(),
-            errorCorrection: $this->getQrErrorCorrection(),
-            color: $this->getQrColor(),
-            backgroundColor: $this->getQrBackgroundColor(),
-            gradient: $this->getQrGradient(),
-            eyeColors: $this->getQrEyeColors(),
-            eyeStyle: $this->getQrEyeStyle(),
-            internalEyeStyle: $this->getQrInternalEyeStyle(),
-            style: $this->getQrStyle(),
-            styleSize: $this->getQrStyleSize(),
-            logoPath: $this->getQrLogoPath(),
-            logoSize: $this->getQrLogoSize(),
-            dpi: $this->getQrDpi(),
-            resolution: $this->getQrResolution(),
-            encoding: $this->getQrEncoding(),
+            $payload,
+            $this->toQrCodeConfig($size),
+            $this->getQrConfigurator(),
         );
     }
 }

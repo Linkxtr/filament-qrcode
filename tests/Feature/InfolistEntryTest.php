@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 use Illuminate\Database\Eloquent\Model;
-use Linkxtr\FilamentQr\Concerns\HasQrInteractions;
-use Linkxtr\FilamentQr\Infolists\Entries\QrCodeEntry;
-use Linkxtr\FilamentQr\Tests\Fixtures\Models\Record;
+use Linkxtr\FilamentQrCode\Concerns\HasQrInteractions;
+use Linkxtr\FilamentQrCode\Infolists\Entries\QrCodeEntry;
+use Linkxtr\FilamentQrCode\Tests\Fixtures\Models\Record;
 use Linkxtr\QrCode\Enums\EyeStyle;
 use Linkxtr\QrCode\Enums\GradientType;
 use Linkxtr\QrCode\Enums\Style;
@@ -26,6 +26,10 @@ it('initializes qr code infolist entry and supports record() and payload() sette
     $returnedPayload = $qrCodeEntry->payload(fn (): string => 'https://custom.example.com');
     expect($returnedPayload)->toBe($qrCodeEntry)
         ->and($qrCodeEntry->getQrPayload())->toBe('https://custom.example.com');
+
+    $returnedStaticPayload = $qrCodeEntry->payload('https://static.example.com');
+    expect($returnedStaticPayload)->toBe($qrCodeEntry)
+        ->and($qrCodeEntry->getQrPayload())->toBe('https://static.example.com');
 });
 
 it('handles state resolution and catches Throwable when getState fails', function (): void {
@@ -46,7 +50,6 @@ it('covers all HasQrInteractions methods, defaults, closures, Stringable, and fa
     // Defaults
     expect($qrCodeEntry->isDownloadable())->toBeFalse()
         ->and($qrCodeEntry->isPreviewable())->toBeTrue()
-        ->and($qrCodeEntry->isClickableToPreview())->toBeTrue()
         ->and($qrCodeEntry->isCopyable())->toBeTrue()
         ->and($qrCodeEntry->getPreviewSize())->toBe(320)
         ->and($qrCodeEntry->getPreviewHeading())->toBe('QR Code Preview')
@@ -58,18 +61,9 @@ it('covers all HasQrInteractions methods, defaults, closures, Stringable, and fa
     expect($qrCodeEntry->isDownloadable())->toBeTrue();
 
     $qrCodeEntry->previewable(false);
-    expect($qrCodeEntry->isPreviewable())->toBeFalse()
-        ->and($qrCodeEntry->isClickableToPreview())->toBeFalse();
+    expect($qrCodeEntry->isPreviewable())->toBeFalse();
     $qrCodeEntry->previewable();
-    expect($qrCodeEntry->isPreviewable())->toBeTrue()
-        ->and($qrCodeEntry->isClickableToPreview())->toBeTrue();
-
-    $qrCodeEntry->clickableToPreview(false);
-    expect($qrCodeEntry->isClickableToPreview())->toBeFalse()
-        ->and($qrCodeEntry->isPreviewable())->toBeFalse();
-    $qrCodeEntry->clickableToPreview();
-    expect($qrCodeEntry->isClickableToPreview())->toBeTrue()
-        ->and($qrCodeEntry->isPreviewable())->toBeTrue();
+    expect($qrCodeEntry->isPreviewable())->toBeTrue();
 
     $qrCodeEntry->copyable(false);
     expect($qrCodeEntry->isCopyable())->toBeFalse();
@@ -93,16 +87,7 @@ it('covers all HasQrInteractions methods, defaults, closures, Stringable, and fa
         ->copyable(fn (): bool => false);
     expect($qrCodeEntry->isDownloadable())->toBeFalse()
         ->and($qrCodeEntry->isPreviewable())->toBeFalse()
-        ->and($qrCodeEntry->isClickableToPreview())->toBeFalse()
         ->and($qrCodeEntry->isCopyable())->toBeFalse();
-
-    $qrCodeEntry->clickableToPreview(fn (): bool => true);
-    expect($qrCodeEntry->isClickableToPreview())->toBeTrue()
-        ->and($qrCodeEntry->isPreviewable())->toBeTrue();
-
-    $qrCodeEntry->clickableToPreview(fn (): bool => false);
-    expect($qrCodeEntry->isClickableToPreview())->toBeFalse()
-        ->and($qrCodeEntry->isPreviewable())->toBeFalse();
 
     $stringable = new class implements Stringable
     {
@@ -171,12 +156,12 @@ it('covers all HasQrInteractions methods, defaults, closures, Stringable, and fa
     expect($qrCodeEntry->getPreviewSize())->toBe(380);
 
     $qrCodeEntry->previewSize(fn (): string => 'not-a-number');
-    config()->set('filament-qr.preview.render_size', '450');
+    config()->set('filament-qrcode.preview.render_size', '450');
     expect($qrCodeEntry->getPreviewSize())->toBe(450);
 
-    config()->set('filament-qr.preview.render_size', 'invalid');
+    config()->set('filament-qrcode.preview.render_size', 'invalid');
     expect($qrCodeEntry->getPreviewSize())->toBe(320);
-    config()->set('filament-qr.preview.render_size', 320);
+    config()->set('filament-qrcode.preview.render_size', 320);
 
     // getPreviewHeading
     expect($qrCodeEntry->previewHeading('Custom Title'))->toBe($qrCodeEntry)
@@ -227,8 +212,6 @@ it('forwards all 18 styling options to QrCodeRenderer on renderQrCode and render
             ->qrInternalEyeStyle(EyeStyle::POINTY)
             ->qrStyle(Style::DOT, 0.8)
             ->qrLogo($logoFile, 0.25)
-            ->qrDpi(144)
-            ->qrResolution(288)
             ->qrEncoding('ISO-8859-1');
 
         $renderedEntry = $entry->renderQrCode();
@@ -246,7 +229,7 @@ it('renders blade view with rendered svg and fallback text when empty', function
     $qrCodeEntry = QrCodeEntry::make('qr')
         ->state('https://filamentphp.com/demo');
 
-    $html = view('filament-qr::infolists.entries.qr-code-entry', [
+    $html = view('filament-qrcode::infolists.entries.qr-code-entry', [
         'renderQrCode' => $qrCodeEntry->renderQrCode(...),
         'getQrPayload' => $qrCodeEntry->getQrPayload(...),
         'getQrFormat' => $qrCodeEntry->getQrFormat(...),
@@ -267,7 +250,7 @@ it('renders blade view with rendered svg and fallback text when empty', function
 
     $emptyEntry = QrCodeEntry::make('qr')->state(null);
 
-    $emptyHtml = view('filament-qr::infolists.entries.qr-code-entry', [
+    $emptyHtml = view('filament-qrcode::infolists.entries.qr-code-entry', [
         'renderQrCode' => $emptyEntry->renderQrCode(...),
         'getQrPayload' => $emptyEntry->getQrPayload(...),
         'getQrFormat' => $emptyEntry->getQrFormat(...),
@@ -290,7 +273,7 @@ it('renders standalone download button in infolist entry when previewable is fal
         ->previewable(false)
         ->downloadFilename('entry-download');
 
-    $html = view('filament-qr::infolists.entries.qr-code-entry', [
+    $html = view('filament-qrcode::infolists.entries.qr-code-entry', [
         'entry' => $qrCodeEntry,
         'renderQrCode' => $qrCodeEntry->renderQrCode(...),
         'getQrPayload' => $qrCodeEntry->getQrPayload(...),
@@ -311,7 +294,7 @@ it('renders preview modal with defensive centered layout, card container, monosp
         ->previewable(true)
         ->downloadable(true);
 
-    $html = view('filament-qr::infolists.entries.qr-code-entry', [
+    $html = view('filament-qrcode::infolists.entries.qr-code-entry', [
         'entry' => $qrCodeEntry,
         'renderQrCode' => $qrCodeEntry->renderQrCode(...),
         'getQrPayload' => $qrCodeEntry->getQrPayload(...),

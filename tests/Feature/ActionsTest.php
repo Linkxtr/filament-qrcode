@@ -2,33 +2,34 @@
 
 declare(strict_types=1);
 
-use Linkxtr\FilamentQr\Actions\DownloadQrAction;
-use Linkxtr\FilamentQr\Actions\DownloadQrBulkAction;
+use Linkxtr\FilamentQrCode\Actions\DownloadQrCodeAction;
+use Linkxtr\FilamentQrCode\Actions\DownloadQrCodeBulkAction;
 
-covers(DownloadQrAction::class, DownloadQrBulkAction::class);
+covers(DownloadQrCodeAction::class, DownloadQrCodeBulkAction::class);
 
 it('can initialize download qr action with defaults and fluent setters', function (): void {
-    $downloadQrAction = DownloadQrAction::make('downloadQr')
+    $DownloadQrCodeAction = DownloadQrCodeAction::make('downloadQr')
         ->filename('custom-code')
         ->qrSize(240)
         ->qrFormat('png')
         ->qrColor('#123456');
 
-    expect($downloadQrAction->getName())->toBe('downloadQr')
-        ->and($downloadQrAction->getQrSize())->toBe(240)
-        ->and($downloadQrAction->getQrFormat())->toBe('png')
-        ->and($downloadQrAction->getQrColor())->toBe('#123456');
+    expect($DownloadQrCodeAction->getName())->toBe('downloadQr')
+        ->and($DownloadQrCodeAction->getQrSize())->toBe(240)
+        ->and($DownloadQrCodeAction->getQrFormat())->toBe('png')
+        ->and($DownloadQrCodeAction->getQrColor())->toBe('#123456');
 });
 
-it('can initialize download qr bulk action with archive filename and styling', function (): void {
-    $downloadQrBulkAction = DownloadQrBulkAction::make('downloadQrBulk')
-        ->archiveFilename('batch-qr')
+it('can initialize download qr bulk action with filename and styling', function (): void {
+    $DownloadQrCodeBulkAction = DownloadQrCodeBulkAction::make('downloadQrBulk')
+        ->filename('batch-qr')
         ->qrSize(180)
         ->qrFormat('svg')
         ->qrColor('#333333');
 
-    expect($downloadQrBulkAction->getName())->toBe('downloadQrBulk')
-        ->and($downloadQrBulkAction->getQrSize())->toBe(180)
-        ->and($downloadQrBulkAction->getQrFormat())->toBe('svg')
-        ->and($downloadQrBulkAction->getQrColor())->toBe('#333333');
+    expect($DownloadQrCodeBulkAction->getName())->toBe('downloadQrBulk')
+        ->and($DownloadQrCodeBulkAction->getFilename())->toBe('batch-qr.zip')
+        ->and($DownloadQrCodeBulkAction->getQrSize())->toBe(180)
+        ->and($DownloadQrCodeBulkAction->getQrFormat())->toBe('svg')
+        ->and($DownloadQrCodeBulkAction->getQrColor())->toBe('#333333');
 });

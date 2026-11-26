@@ -2,25 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Linkxtr\FilamentQr\Actions;
+namespace Linkxtr\FilamentQrCode\Actions;
 
 use Closure;
 use Filament\Actions\Action;
 use Illuminate\Database\Eloquent\Model;
-use Linkxtr\FilamentQr\Concerns\HasPayloadFormatters;
-use Linkxtr\FilamentQr\Concerns\HasQrCodeStyling;
-use Linkxtr\FilamentQr\Services\QrCodeRenderer;
+use Linkxtr\FilamentQrCode\Concerns\HasPayload;
+use Linkxtr\FilamentQrCode\Concerns\HasQrCodeStyling;
+use Linkxtr\FilamentQrCode\Services\QrCodeRenderer;
 use Stringable;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-final class DownloadQrAction extends Action
+final class DownloadQrCodeAction extends Action
 {
-    use HasPayloadFormatters;
+    use HasPayload;
     use HasQrCodeStyling;
 
     private string|Closure $filename = 'qrcode';
-
-    private ?Closure $payloadResolver = null;
 
     protected function setUp(): void
     {
@@ -37,31 +35,13 @@ final class DownloadQrAction extends Action
                 return null;
             }
 
-            $format = $this->getQrFormat();
+            $config = $this->toQrCodeConfig();
+            $format = $config->getFormat()->value;
 
             /** @var QrCodeRenderer $qrCodeRenderer */
             $qrCodeRenderer = app(QrCodeRenderer::class);
 
-            $output = $qrCodeRenderer->renderRaw(
-                payload: $payload,
-                size: $this->getQrSize(),
-                margin: $this->getQrMargin(),
-                format: $format,
-                errorCorrection: $this->getQrErrorCorrection(),
-                color: $this->getQrColor(),
-                backgroundColor: $this->getQrBackgroundColor(),
-                gradient: $this->getQrGradient(),
-                eyeColors: $this->getQrEyeColors(),
-                eyeStyle: $this->getQrEyeStyle(),
-                internalEyeStyle: $this->getQrInternalEyeStyle(),
-                style: $this->getQrStyle(),
-                styleSize: $this->getQrStyleSize(),
-                logoPath: $this->getQrLogoPath(),
-                logoSize: $this->getQrLogoSize(),
-                dpi: $this->getQrDpi(),
-                resolution: $this->getQrResolution(),
-                encoding: $this->getQrEncoding(),
-            );
+            $output = $qrCodeRenderer->renderRaw($payload, $config, $this->getQrConfigurator($record));
 
             $contentType = match ($format) {
                 'svg' => 'image/svg+xml',
@@ -83,17 +63,12 @@ final class DownloadQrAction extends Action
         return 'downloadQr';
     }
 
-    public function payload(Closure $callback): static
-    {
-        $this->payloadResolver = $callback;
-
-        return $this;
-    }
-
     public function resolvePayloadForRecord(mixed $record): ?string
     {
         if ($this->payloadResolver instanceof Closure) {
             $raw = $this->evaluate($this->payloadResolver, ['record' => $record]);
+        } elseif ($this->payloadResolver !== null) {
+            $raw = $this->payloadResolver;
         } elseif ($record instanceof Model) {
             $raw = $record->getAttribute('qr') ?? $record->getAttribute('qr_code') ?? $record->getAttribute('url') ?? $record->getKey();
         } elseif (is_array($record)) {

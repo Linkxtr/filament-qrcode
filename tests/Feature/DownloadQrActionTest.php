@@ -3,41 +3,42 @@
 declare(strict_types=1);
 
 use Illuminate\Database\Eloquent\Model;
-use Linkxtr\FilamentQr\Actions\DownloadQrAction;
-use Linkxtr\FilamentQr\Tests\Fixtures\Models\Record;
+use Linkxtr\FilamentQrCode\Actions\DownloadQrCodeAction;
+use Linkxtr\FilamentQrCode\Tests\Fixtures\Models\Record;
 use Linkxtr\QrCode\Enums\EyeStyle;
 use Linkxtr\QrCode\Enums\GradientType;
 use Linkxtr\QrCode\Enums\Style;
+use Linkxtr\QrCode\Generator;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-covers(DownloadQrAction::class);
+covers(DownloadQrCodeAction::class);
 
 it('initializes download qr action with defaults, label, icon, and fluent setters', function (): void {
-    $downloadQrAction = DownloadQrAction::make();
+    $DownloadQrCodeAction = DownloadQrCodeAction::make();
 
-    expect(DownloadQrAction::getDefaultName())->toBe('downloadQr')
-        ->and($downloadQrAction->getName())->toBe('downloadQr')
-        ->and($downloadQrAction->getView())->toBe('filament::components.button.index')
-        ->and($downloadQrAction->getLabel())->toBe('Download QR')
-        ->and($downloadQrAction->getIcon())->toBe('heroicon-o-arrow-down-tray')
-        ->and($downloadQrAction->getFilename())->toBe('qrcode')
-        ->and($downloadQrAction->getQrFormat())->toBe('svg');
+    expect(DownloadQrCodeAction::getDefaultName())->toBe('downloadQr')
+        ->and($DownloadQrCodeAction->getName())->toBe('downloadQr')
+        ->and($DownloadQrCodeAction->getView())->toBe('filament::components.button.index')
+        ->and($DownloadQrCodeAction->getLabel())->toBe('Download QR')
+        ->and($DownloadQrCodeAction->getIcon())->toBe('heroicon-o-arrow-down-tray')
+        ->and($DownloadQrCodeAction->getFilename())->toBe('qrcode')
+        ->and($DownloadQrCodeAction->getQrFormat())->toBe('svg');
 
-    $fluent = $downloadQrAction->filename('custom-code')
+    $fluent = $DownloadQrCodeAction->filename('custom-code')
         ->qrSize(240)
         ->qrFormat('png')
         ->qrColor('#123456');
 
-    expect($fluent)->toBe($downloadQrAction)
-        ->and($downloadQrAction->getFilename())->toBe('custom-code')
-        ->and($downloadQrAction->getQrSize())->toBe(240)
-        ->and($downloadQrAction->getQrFormat())->toBe('png')
-        ->and($downloadQrAction->getQrColor())->toBe('#123456');
+    expect($fluent)->toBe($DownloadQrCodeAction)
+        ->and($DownloadQrCodeAction->getFilename())->toBe('custom-code')
+        ->and($DownloadQrCodeAction->getQrSize())->toBe(240)
+        ->and($DownloadQrCodeAction->getQrFormat())->toBe('png')
+        ->and($DownloadQrCodeAction->getQrColor())->toBe('#123456');
 });
 
 it('resolves filename from string, scalar closure, Stringable closure, and falls back to qrcode', function (): void {
-    $downloadQrAction = DownloadQrAction::make()->filename(fn (): int => 123);
-    expect($downloadQrAction->getFilename())->toBe('123');
+    $DownloadQrCodeAction = DownloadQrCodeAction::make()->filename(fn (): int => 123);
+    expect($DownloadQrCodeAction->getFilename())->toBe('123');
 
     $stringable = new class implements Stringable
     {
@@ -46,23 +47,23 @@ it('resolves filename from string, scalar closure, Stringable closure, and falls
             return 'stringable-qr';
         }
     };
-    $downloadQrAction->filename(fn (): Stringable => $stringable);
-    expect($downloadQrAction->getFilename())->toBe('stringable-qr');
+    $DownloadQrCodeAction->filename(fn (): Stringable => $stringable);
+    expect($DownloadQrCodeAction->getFilename())->toBe('stringable-qr');
 
-    $downloadQrAction->filename(fn (): array => ['invalid']);
-    expect($downloadQrAction->getFilename())->toBe('qrcode');
+    $DownloadQrCodeAction->filename(fn (): array => ['invalid']);
+    expect($DownloadQrCodeAction->getFilename())->toBe('qrcode');
 });
 
 it('resolves payload from closure, Eloquent model attributes, array keys, stdClass, scalar, and null', function (): void {
-    $action = DownloadQrAction::make();
+    $action = DownloadQrCodeAction::make();
 
     // Closure
-    $downloadQrAction = $action->payload(fn ($record): string => "custom-{$record['id']}");
-    expect($downloadQrAction)->toBe($action)
+    $DownloadQrCodeAction = $action->payload(fn ($record): string => "custom-{$record['id']}");
+    expect($DownloadQrCodeAction)->toBe($action)
         ->and($action->resolvePayloadForRecord(['id' => 7]))->toBe('custom-7');
 
     // Fresh action without closure
-    $action = DownloadQrAction::make();
+    $action = DownloadQrCodeAction::make();
 
     // Model with qr
     $m1 = new Record(['qr' => 'model-qr', 'url' => 'model-url']);
@@ -95,21 +96,25 @@ it('resolves payload from closure, Eloquent model attributes, array keys, stdCla
     // Object with qr, object with url, object with neither
     expect($action->resolvePayloadForRecord((object) ['qr' => 'obj-qr', 'url' => 'obj-url']))->toBe('obj-qr')
         ->and($action->resolvePayloadForRecord((object) ['url' => 'obj-url']))->toBe('obj-url')
-        ->and($action->resolvePayloadForRecord((object) ['other' => 'val']))->toBe('');
+        ->and($action->resolvePayloadForRecord((object) ['other' => 'val']))->toBeNull();
 
     // Scalar and null
     expect($action->resolvePayloadForRecord('direct-string'))->toBe('direct-string')
         ->and($action->resolvePayloadForRecord(null))->toBeNull();
+
+    // Static string and Stringable payload()
+    $staticAction = DownloadQrCodeAction::make()->payload('https://linkx.tr');
+    expect($staticAction->resolvePayloadForRecord(['id' => 1]))->toBe('https://linkx.tr');
 });
 
 it('returns null when payload is empty or null on action execution', function (): void {
-    $downloadQrAction = DownloadQrAction::make()
+    $DownloadQrCodeAction = DownloadQrCodeAction::make()
         ->record([])
         ->payload(fn (): ?string => null);
 
-    expect($downloadQrAction->call())->toBeNull();
+    expect($DownloadQrCodeAction->call())->toBeNull();
 
-    $actionEmpty = DownloadQrAction::make()
+    $actionEmpty = DownloadQrCodeAction::make()
         ->record([])
         ->payload(fn (): string => '');
 
@@ -125,7 +130,7 @@ it('streams download for svg, png, webp, and eps formats with full styling optio
     ];
 
     foreach ($formats as $format => $expectedMime) {
-        $action = DownloadQrAction::make()
+        $action = DownloadQrCodeAction::make()
             ->record(['qr' => 'https://example.com'])
             ->filename('export-qr')
             ->qrFormat($format)
@@ -154,4 +159,20 @@ it('streams download for svg, png, webp, and eps formats with full styling optio
 
         expect($body)->toBeString()->not->toBeEmpty();
     }
+});
+
+it('forwards configureQrUsing with record injection on single download action', function (): void {
+    $action = DownloadQrCodeAction::make()
+        ->record(['qr' => 'https://linkx.tr/action', 'custom_size' => 275])
+        ->configureQrUsing(fn (Generator $qr, array $record): Generator => $qr->size((int) $record['custom_size']));
+
+    /** @var StreamedResponse $response */
+    $response = $action->call();
+
+    ob_start();
+    $response->sendContent();
+    $body = (string) ob_get_clean();
+
+    expect($body)->toContain('<svg')
+        ->and($body)->toContain('width="275"');
 });

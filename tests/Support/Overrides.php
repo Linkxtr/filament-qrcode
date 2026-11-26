@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Linkxtr\FilamentQr\Actions {
+namespace Linkxtr\FilamentQrCode\Actions {
     $GLOBALS['mockTempnamFalse'] ??= false;
     $GLOBALS['mockTempnamPath'] ??= null;
     $GLOBALS['lastTempnamFile'] ??= null;
@@ -35,21 +35,6 @@ namespace Linkxtr\FilamentQr\Actions {
             $GLOBALS['lastUnlinkedFile'] = $filename;
 
             return $context !== null ? \unlink($filename, $context) : \unlink($filename);
-        }
-    }
-}
-
-namespace Linkxtr\FilamentQr\Services {
-    $GLOBALS['mockImagickLoaded'] ??= null;
-
-    if (! function_exists(__NAMESPACE__.'\extension_loaded')) {
-        function extension_loaded(string $extension): bool
-        {
-            if ($extension === 'imagick' && is_bool($GLOBALS['mockImagickLoaded'])) {
-                return $GLOBALS['mockImagickLoaded'];
-            }
-
-            return \extension_loaded($extension);
         }
     }
 }

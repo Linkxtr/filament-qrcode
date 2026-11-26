@@ -8,8 +8,8 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
-use Linkxtr\FilamentQr\Concerns\HasQrInteractions;
-use Linkxtr\FilamentQr\Tables\Columns\QrCodeColumn;
+use Linkxtr\FilamentQrCode\Concerns\HasQrInteractions;
+use Linkxtr\FilamentQrCode\Tables\Columns\QrCodeColumn;
 use Linkxtr\QrCode\Enums\ErrorCorrectionLevel;
 use Linkxtr\QrCode\Enums\EyeStyle;
 use Linkxtr\QrCode\Enums\Format;
@@ -41,6 +41,9 @@ it('resolves payload from closure, state, getStateUsing fallback, and returns nu
     $returned = $qrCodeColumn->payload(fn (): string => 'from-closure');
     expect($returned)->toBe($qrCodeColumn)
         ->and($qrCodeColumn->getQrPayload())->toBe('from-closure');
+
+    $colStatic = QrCodeColumn::make('qr')->payload('from-static');
+    expect($colStatic->getQrPayload())->toBe('from-static');
 
     $colState = QrCodeColumn::make('qr')->state('from-state');
     expect($colState->getQrPayload())->toBe('from-state');
@@ -123,7 +126,6 @@ it('has correct default interaction properties on QrCodeColumn', function (): vo
 
     expect($column->isDownloadable())->toBeFalse()
         ->and($column->isPreviewable())->toBeTrue()
-        ->and($column->isClickableToPreview())->toBeTrue()
         ->and($column->isCopyable())->toBeTrue()
         ->and($column->getPreviewSize())->toBe(320)
         ->and($column->getPreviewHeading())->toBe('QR Code Preview')
@@ -132,30 +134,19 @@ it('has correct default interaction properties on QrCodeColumn', function (): vo
 
     $column->downloadable()->previewable(false)->copyable(false);
     expect($column->isDownloadable())->toBeTrue()
-        ->and($column->isClickableToPreview())->toBeFalse()
         ->and($column->isPreviewable())->toBeFalse()
         ->and($column->isCopyable())->toBeFalse();
 
     $column->downloadable(false)->previewable(true)->copyable(true);
     expect($column->isDownloadable())->toBeFalse()
-        ->and($column->isClickableToPreview())->toBeTrue()
         ->and($column->isPreviewable())->toBeTrue()
         ->and($column->isCopyable())->toBeTrue();
-
-    $column->clickableToPreview(false);
-    expect($column->isClickableToPreview())->toBeFalse()
-        ->and($column->isPreviewable())->toBeFalse();
-
-    $column->clickableToPreview(true);
-    expect($column->isClickableToPreview())->toBeTrue()
-        ->and($column->isPreviewable())->toBeTrue();
 
     $column->downloadable(fn (): bool => true)
         ->previewable(fn (): bool => true)
         ->copyable(fn (): bool => true);
     expect($column->isDownloadable())->toBeTrue()
         ->and($column->isPreviewable())->toBeTrue()
-        ->and($column->isClickableToPreview())->toBeTrue()
         ->and($column->isCopyable())->toBeTrue();
 
     $column->downloadable(fn (): bool => false)
@@ -163,16 +154,7 @@ it('has correct default interaction properties on QrCodeColumn', function (): vo
         ->copyable(fn (): bool => false);
     expect($column->isDownloadable())->toBeFalse()
         ->and($column->isPreviewable())->toBeFalse()
-        ->and($column->isClickableToPreview())->toBeFalse()
         ->and($column->isCopyable())->toBeFalse();
-
-    $column->clickableToPreview(fn (): bool => true);
-    expect($column->isClickableToPreview())->toBeTrue()
-        ->and($column->isPreviewable())->toBeTrue();
-
-    $column->clickableToPreview(fn (): bool => false);
-    expect($column->isClickableToPreview())->toBeFalse()
-        ->and($column->isPreviewable())->toBeFalse();
 
     $column->downloadFilename('custom-report');
     expect($column->getDownloadFilename())->toBe('custom-report');

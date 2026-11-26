@@ -1,14 +1,14 @@
-# Strategic Roadmap: linkxtr/filament-qr
+# Strategic Roadmap: linkxtr/filament-qrcode
 
-Welcome to the strategic product and engineering roadmap for **`linkxtr/filament-qr`**. 
+Welcome to the strategic product and engineering roadmap for **`linkxtr/filament-qrcode`**. 
 
-This document outlines the four strategic development waves expanding `filament-qr` from a high-quality display and action package into a complete, enterprise-grade QR operations suite natively embedded within Filament Admin Panels.
+This document outlines the four strategic development waves expanding `filament-qrcode` from a high-quality display and action package into a complete, enterprise-grade QR operations suite natively embedded within Filament Admin Panels.
 
 ---
 
 ## Strategic Vision & Product Philosophy
 
-The mission of `linkxtr/filament-qr` is to provide the most fluid, aesthetically refined, and developer-friendly QR code tooling in the Laravel and Filament ecosystem. By delegating low-level vector rendering and SVG manipulation to [`linkxtr/laravel-qrcode`](https://github.com/Linkxtr/laravel-qrcode), `filament-qr` focuses on delivering:
+The mission of `linkxtr/filament-qrcode` is to provide the most fluid, aesthetically refined, and developer-friendly QR code tooling in the Laravel and Filament ecosystem. By delegating low-level vector rendering and SVG manipulation to [`linkxtr/laravel-qrcode`](https://github.com/Linkxtr/laravel-qrcode), `filament-qrcode` focuses on delivering:
 
 1. **Native Filament UX**: Zero-friction integration with Table Schemas, Infolist Schemas, Form Schemas, Actions, and Widgets.
 2. **Defensive Aesthetics**: Cohesive light and dark mode styling, defensive centering, responsive container bounding, and accessible preview modals.
@@ -39,7 +39,7 @@ The mission of `linkxtr/filament-qr` is to provide the most fluid, aesthetically
 ### Wave 1 (v1.1): Form Live QR Preview Component (`QrCodeField`)
 
 **Status:** Completed & Released in v1.1.0  
-**Target:** `Linkxtr\FilamentQr\Forms\Components\QrCodeField`
+**Target:** `Linkxtr\FilamentQrCode\Forms\Components\QrCodeField`
 
 #### Objectives & Capabilities
 - **Form Schema Integration**: Embed live, interactive QR code cards directly into Filament Form schemas (`Create`, `Edit`, and custom modal forms).
@@ -53,7 +53,7 @@ The mission of `linkxtr/filament-qr` is to provide the most fluid, aesthetically
 ### Wave 2 (v1.2): In-Form Interactive QR Customizer
 
 **Status:** Planned (Next Milestone)  
-**Target:** `Linkxtr\FilamentQr\Forms\Components\QrCodeCustomizer`
+**Target:** `Linkxtr\FilamentQrCode\Forms\Components\QrCodeCustomizer`
 
 #### Objectives & Capabilities
 - **Visual Design Studio**: Provide a turnkey, interactive customizer component that can be placed in forms or opened via a builder modal.
@@ -73,7 +73,7 @@ The mission of `linkxtr/filament-qr` is to provide the most fluid, aesthetically
 ### Wave 3 (v1.3): Print Sheet Action & Grid Template
 
 **Status:** Planned  
-**Target:** `Linkxtr\FilamentQr\Actions\PrintQrSheetAction` & `PrintQrSheetBulkAction`
+**Target:** `Linkxtr\FilamentQrCode\Actions\PrintQrSheetAction` & `PrintQrSheetBulkAction`
 
 #### Objectives & Capabilities
 - **Physical Label Sheets**: Allow administrators to export and print formatted label sheets for inventory items, conference badges, restaurant tables, or asset tags.
@@ -92,7 +92,7 @@ The mission of `linkxtr/filament-qr` is to provide the most fluid, aesthetically
 ### Wave 4 (v1.4): Filament Dashboard Widgets
 
 **Status:** Planned  
-**Target:** `Linkxtr\FilamentQr\Widgets\QrCodeStatsWidget` & `QuickQrGeneratorWidget`
+**Target:** `Linkxtr\FilamentQrCode\Widgets\QrCodeStatsWidget` & `QuickQrGeneratorWidget`
 
 #### Objectives & Capabilities
 - **`QuickQrGeneratorWidget`**:
@@ -106,7 +106,7 @@ The mission of `linkxtr/filament-qr` is to provide the most fluid, aesthetically
 
 ## Quality & Compatibility Commitments
 
-Across all four waves, `linkxtr/filament-qr` adheres to strict engineering benchmarks:
+Across all four waves, `linkxtr/filament-qrcode` adheres to strict engineering benchmarks:
 
 - **Strict Typing & PHPStan Level Max**: 100% strict types (`declare(strict_types=1);`), zero PHPStan errors at level `max`.
 - **Formatting Standards**: 100% Laravel Pint compliance.

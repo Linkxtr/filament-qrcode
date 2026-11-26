@@ -3,14 +3,16 @@
 declare(strict_types=1);
 
 use Filament\Support\Facades\FilamentColor;
-use Linkxtr\FilamentQr\Concerns\HasQrCodeStyling;
-use Linkxtr\FilamentQr\Services\QrCodeRenderer;
-use Linkxtr\FilamentQr\Tables\Columns\QrCodeColumn;
+use Linkxtr\FilamentQrCode\Concerns\HasQrCodeStyling;
+use Linkxtr\FilamentQrCode\Services\QrCodeRenderer;
+use Linkxtr\FilamentQrCode\Tables\Columns\QrCodeColumn;
+use Linkxtr\QrCode\DTOs\Config;
 use Linkxtr\QrCode\Enums\ErrorCorrectionLevel;
 use Linkxtr\QrCode\Enums\EyeStyle;
 use Linkxtr\QrCode\Enums\Format;
 use Linkxtr\QrCode\Enums\GradientType;
 use Linkxtr\QrCode\Enums\Style;
+use Linkxtr\QrCode\Generator;
 
 covers(
     HasQrCodeStyling::class,
@@ -35,8 +37,6 @@ it('supports fluent styling methods and format shortcuts on filament qr column',
         ->qrInternalEyeStyle(EyeStyle::SQUARE)
         ->qrStyle(Style::ROUND, 0.7)
         ->qrLogo('/path/to/logo.png')
-        ->qrDpi(300)
-        ->qrResolution(600)
         ->qrEncoding('ISO-8859-1');
 
     expect($qrCodeColumn->getQrSize())->toBe(250)
@@ -62,8 +62,6 @@ it('supports fluent styling methods and format shortcuts on filament qr column',
         ->and($qrCodeColumn->getQrStyleSize())->toBe(0.7)
         ->and($qrCodeColumn->getQrLogoPath())->toBe('/path/to/logo.png')
         ->and($qrCodeColumn->getQrLogoSize())->toBe(0.2)
-        ->and($qrCodeColumn->getQrDpi())->toBe(300)
-        ->and($qrCodeColumn->getQrResolution())->toBe(600)
         ->and($qrCodeColumn->getQrEncoding())->toBe('ISO-8859-1');
 
     // Calling qrStyle without size preserves existing styleSize
@@ -82,12 +80,12 @@ it('implements environment-aware 4-tier configuration inheritance', function ():
     $col = QrCodeColumn::make('tiers');
 
     // Tier 4: Hardcoded Fallbacks (when Tier 1, Tier 2, and Tier 3 are unset or invalid)
-    config()->set('filament-qr.defaults.size');
-    config()->set('filament-qr.defaults.margin');
-    config()->set('filament-qr.defaults.format');
-    config()->set('filament-qr.defaults.error_correction');
-    config()->set('filament-qr.defaults.color');
-    config()->set('filament-qr.defaults.background_color');
+    config()->set('filament-qrcode.defaults.size');
+    config()->set('filament-qrcode.defaults.margin');
+    config()->set('filament-qrcode.defaults.format');
+    config()->set('filament-qrcode.defaults.error_correction');
+    config()->set('filament-qrcode.defaults.color');
+    config()->set('filament-qrcode.defaults.background_color');
 
     config()->set('qrcode.size');
     config()->set('qrcode.margin');
@@ -104,12 +102,12 @@ it('implements environment-aware 4-tier configuration inheritance', function ():
         ->and($col->getQrBackgroundColor())->toBe('#ffffff');
 
     // Tier 4 also holds when Tier 2 and Tier 3 contain invalid non-numeric/empty values
-    config()->set('filament-qr.defaults.size', 'not-a-number');
-    config()->set('filament-qr.defaults.margin', 'not-a-number');
-    config()->set('filament-qr.defaults.format', 123);
-    config()->set('filament-qr.defaults.error_correction', 123);
-    config()->set('filament-qr.defaults.color', 123);
-    config()->set('filament-qr.defaults.background_color', 123);
+    config()->set('filament-qrcode.defaults.size', 'not-a-number');
+    config()->set('filament-qrcode.defaults.margin', 'not-a-number');
+    config()->set('filament-qrcode.defaults.format', 123);
+    config()->set('filament-qrcode.defaults.error_correction', 123);
+    config()->set('filament-qrcode.defaults.color', 123);
+    config()->set('filament-qrcode.defaults.background_color', 123);
 
     config()->set('qrcode.size', 'not-a-number');
     config()->set('qrcode.margin', 'not-a-number');
@@ -125,13 +123,13 @@ it('implements environment-aware 4-tier configuration inheritance', function ():
         ->and($col->getQrColor())->toBe('#000000')
         ->and($col->getQrBackgroundColor())->toBe('#ffffff');
 
-    // Tier 3: config('qrcode.*') inherited when filament-qr is unset (with string numbers and whitespace fallbacks)
-    config()->set('filament-qr.defaults.size', '');
-    config()->set('filament-qr.defaults.margin', '');
-    config()->set('filament-qr.defaults.format', '');
-    config()->set('filament-qr.defaults.error_correction', '');
-    config()->set('filament-qr.defaults.color', '   ');
-    config()->set('filament-qr.defaults.background_color', '   ');
+    // Tier 3: config('qrcode.*') inherited when filament-qrcode is unset (with string numbers and whitespace fallbacks)
+    config()->set('filament-qrcode.defaults.size', '');
+    config()->set('filament-qrcode.defaults.margin', '');
+    config()->set('filament-qrcode.defaults.format', '');
+    config()->set('filament-qrcode.defaults.error_correction', '');
+    config()->set('filament-qrcode.defaults.color', '   ');
+    config()->set('filament-qrcode.defaults.background_color', '   ');
 
     config()->set('qrcode.size', '400');
     config()->set('qrcode.margin', '4');
@@ -157,15 +155,15 @@ it('implements environment-aware 4-tier configuration inheritance', function ():
         ->and($col->getQrColor())->toBe('#000000')
         ->and($col->getQrBackgroundColor())->toBe('#ffffff');
 
-    // Tier 2: config('filament-qr.defaults.*') overrides config('qrcode.*')
+    // Tier 2: config('filament-qrcode.defaults.*') overrides config('qrcode.*')
     config()->set('qrcode.format', 'eps');
     config()->set('qrcode.error_correction', 'L');
-    config()->set('filament-qr.defaults.size', '220');
-    config()->set('filament-qr.defaults.margin', '2');
-    config()->set('filament-qr.defaults.format', 'png');
-    config()->set('filament-qr.defaults.error_correction', 'H');
-    config()->set('filament-qr.defaults.color', '#123456');
-    config()->set('filament-qr.defaults.background_color', '#abcdef');
+    config()->set('filament-qrcode.defaults.size', '220');
+    config()->set('filament-qrcode.defaults.margin', '2');
+    config()->set('filament-qrcode.defaults.format', 'png');
+    config()->set('filament-qrcode.defaults.error_correction', 'H');
+    config()->set('filament-qrcode.defaults.color', '#123456');
+    config()->set('filament-qrcode.defaults.background_color', '#abcdef');
 
     expect($col->getQrSize())->toBe(220)
         ->and($col->getQrMargin())->toBe(2)
@@ -207,12 +205,12 @@ it('handles closures, Stringable, numeric strings, and config fallbacks across a
     $qrCodeColumn = QrCodeColumn::make('defaults');
 
     // Unset defaults (uses package hardcoded fallbacks when configs are null)
-    config()->set('filament-qr.defaults.size');
-    config()->set('filament-qr.defaults.margin');
-    config()->set('filament-qr.defaults.format');
-    config()->set('filament-qr.defaults.error_correction');
-    config()->set('filament-qr.defaults.color');
-    config()->set('filament-qr.defaults.background_color');
+    config()->set('filament-qrcode.defaults.size');
+    config()->set('filament-qrcode.defaults.margin');
+    config()->set('filament-qrcode.defaults.format');
+    config()->set('filament-qrcode.defaults.error_correction');
+    config()->set('filament-qrcode.defaults.color');
+    config()->set('filament-qrcode.defaults.background_color');
 
     config()->set('qrcode.size');
     config()->set('qrcode.margin');
@@ -235,8 +233,6 @@ it('handles closures, Stringable, numeric strings, and config fallbacks across a
         ->and($qrCodeColumn->getQrStyleSize())->toBeNull()
         ->and($qrCodeColumn->getQrLogoPath())->toBeNull()
         ->and($qrCodeColumn->getQrLogoSize())->toBe(0.2)
-        ->and($qrCodeColumn->getQrDpi())->toBeNull()
-        ->and($qrCodeColumn->getQrResolution())->toBeNull()
         ->and($qrCodeColumn->getQrEncoding())->toBe('UTF-8');
 
     // Numeric string & Stringable closures
@@ -250,8 +246,6 @@ it('handles closures, Stringable, numeric strings, and config fallbacks across a
         ->qrInternalEyeStyle(fn (): Stringable => $stringable)
         ->qrStyle(fn (): Stringable => $stringable, fn (): string => '0.85')
         ->qrLogo(fn (): Stringable => $stringable, fn (): string => '0.35')
-        ->qrDpi(fn (): string => '180')
-        ->qrResolution(fn (): string => '360')
         ->qrEncoding(fn (): Stringable => $stringable);
 
     expect($qrCodeColumn->getQrSize())->toBe(195)
@@ -266,8 +260,6 @@ it('handles closures, Stringable, numeric strings, and config fallbacks across a
         ->and($qrCodeColumn->getQrStyleSize())->toBe(0.85)
         ->and($qrCodeColumn->getQrLogoPath())->toBe('stringable-token')
         ->and($qrCodeColumn->getQrLogoSize())->toBe(0.35)
-        ->and($qrCodeColumn->getQrDpi())->toBe(180)
-        ->and($qrCodeColumn->getQrResolution())->toBe(360)
         ->and($qrCodeColumn->getQrEncoding())->toBe('stringable-token');
 
     // Non-scalar closures falling back to null / defaults
@@ -279,8 +271,6 @@ it('handles closures, Stringable, numeric strings, and config fallbacks across a
         ->qrInternalEyeStyle(fn (): array => [])
         ->qrStyle(fn (): array => [], fn (): string => 'not-float')
         ->qrLogo(fn (): array => [], fn (): string => 'not-float')
-        ->qrDpi(fn (): string => 'not-int')
-        ->qrResolution(fn (): string => 'not-int')
         ->qrEncoding(fn (): array => []);
 
     expect($qrCodeColumn->getQrFormat())->toBe('svg')
@@ -293,8 +283,6 @@ it('handles closures, Stringable, numeric strings, and config fallbacks across a
         ->and($qrCodeColumn->getQrStyleSize())->toBeNull()
         ->and($qrCodeColumn->getQrLogoPath())->toBeNull()
         ->and($qrCodeColumn->getQrLogoSize())->toBe(0.2)
-        ->and($qrCodeColumn->getQrDpi())->toBeNull()
-        ->and($qrCodeColumn->getQrResolution())->toBeNull()
         ->and($qrCodeColumn->getQrEncoding())->toBe('UTF-8');
 });
 
@@ -487,4 +475,90 @@ it('resolves hex, rgb, FilamentColor palettes, shade notations, and fallback map
         ->and($qrCodeColumn->resolveColorToken('warning'))->toBe('#f59e0b')
         ->and($qrCodeColumn->resolveColorToken('secondary'))->toBe('#64748b')
         ->and($qrCodeColumn->resolveColorToken('UnknownToken'))->toBe('UnknownToken');
+});
+
+it('builds a populated Linkxtr QrCode Config DTO via toQrCodeConfig() with optional size override', function (): void {
+    $logoFile = tempnam(sys_get_temp_dir(), 'qr_logo_').'.png';
+    $img = imagecreatetruecolor(16, 16);
+    imagepng($img, $logoFile);
+    imagedestroy($img);
+
+    try {
+        $column = QrCodeColumn::make('qr')
+            ->qrFormat(Format::PNG)
+            ->qrSize(220)
+            ->qrMargin(3)
+            ->qrErrorCorrection(ErrorCorrectionLevel::H)
+            ->qrColor('#112233')
+            ->qrBackgroundColor('#abcdef')
+            ->qrGradient('#ff0000', '#0000ff', GradientType::HORIZONTAL)
+            ->qrEyeColor(0, '#ff0000', '#00ff00')
+            ->qrEyeColor(1, '#0000ff')
+            ->qrEyeStyle(EyeStyle::CIRCLE)
+            ->qrInternalEyeStyle(EyeStyle::POINTY)
+            ->qrStyle(Style::DOT, 0.75)
+            ->qrLogo($logoFile, 0.25)
+            ->qrEncoding('ISO-8859-1');
+
+        $config = $column->toQrCodeConfig();
+
+        expect($config)->toBeInstanceOf(Config::class)
+            ->and($config->getFormat())->toBe(Format::PNG)
+            ->and($config->getSize())->toBe(220)
+            ->and($config->getMargin())->toBe(3)
+            ->and($config->getErrorCorrectionLevel())->toBe(ErrorCorrectionLevel::H)
+            ->and($config->getEncoding())->toBe('ISO-8859-1')
+            ->and($config->getColorValue()->toRgb()->red)->toBe(17)
+            ->and($config->getColorValue()->toRgb()->green)->toBe(34)
+            ->and($config->getColorValue()->toRgb()->blue)->toBe(51)
+            ->and($config->getBackgroundColorValue()->toRgb()->red)->toBe(171)
+            ->and($config->getBackgroundColorValue()->toRgb()->green)->toBe(205)
+            ->and($config->getBackgroundColorValue()->toRgb()->blue)->toBe(239)
+            ->and($config->getGradient())->not->toBeNull()
+            ->and($config->getGradient()?->getType()->name())->toBe('HORIZONTAL')
+            ->and($config->getEyeColors())->toHaveKeys([0, 1])
+            ->and($config->getEyeColors()[0]->inheritsInternalColor())->toBeFalse()
+            ->and($config->getEyeColors()[1]->inheritsInternalColor())->toBeTrue()
+            ->and($config->getEyeStyle())->toBe(EyeStyle::CIRCLE)
+            ->and($config->getInternalEyeStyle())->toBe(EyeStyle::POINTY)
+            ->and($config->getStyle())->toBe(Style::DOT)
+            ->and($config->getStyleSize())->toBe(0.75)
+            ->and($config->getImageMerge())->not->toBeEmpty()
+            ->and($config->getImagePercentage())->toBe(0.25);
+
+        $overrideConfig = $column->toQrCodeConfig(360);
+        expect($overrideConfig->getSize())->toBe(360);
+
+        $defaultConfig = QrCodeColumn::make('plain')->toQrCodeConfig();
+        expect($defaultConfig->getGradient())->toBeNull()
+            ->and($defaultConfig->getEyeColors())
+            ->toBeEmpty()
+            ->and($defaultConfig->getEyeStyle())->toBeNull()
+            ->and($defaultConfig->getInternalEyeStyle())->toBeNull()
+            ->and($defaultConfig->getStyle())->toBe(Style::SQUARE)
+            ->and($defaultConfig->getImageMerge())
+            ->toBeEmpty();
+    } finally {
+        @unlink($logoFile);
+    }
+});
+
+it('supports configureQrUsing with qr, generator, typed Generator, and record injections', function (): void {
+    $column = QrCodeColumn::make('qr')->payload('https://linkx.tr');
+
+    expect($column->getQrConfigurator())->toBeNull();
+
+    // Named $qr injection (untyped)
+    $fluent = $column->configureQrUsing(fn ($qr): Generator => $qr->size(212)->gray(20, 95));
+    expect($fluent)->toBe($column)
+        ->and($column->renderQrCode())->toContain('width="212"');
+
+    // Named $generator injection (untyped)
+    $column->configureQrUsing(fn ($generator): Generator => $generator->size(224)->cmyk());
+    expect($column->renderQrCode())->toContain('width="224"');
+
+    // Typed Generator injection with custom parameter name preserves pre-configured column settings
+    $column->qrSize(236)
+        ->configureQrUsing(fn (Generator $customBuilder): Generator => $customBuilder->margin(0));
+    expect($column->renderQrCode())->toContain('width="236"');
 });

@@ -23,21 +23,25 @@ jobs:
           - php: 8.4
             laravel: ^12.0
             testbench: ^10.0
+            pest: ^4.0
           - php: 8.5
             laravel: ^12.0
             testbench: ^10.0
+            pest: ^4.0
           - php: 8.4
             laravel: ^13.0
             testbench: ^11.0
+            pest: ^5.0
           - php: 8.5
             laravel: ^13.0
             testbench: ^11.0
+            pest: ^5.0
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-          
+
       - name: Setup PHP
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
         with:
@@ -63,8 +67,9 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          composer remove --dev laravel/pao --no-update --no-interaction 2>/dev/null || true
-          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer remove --dev laravel/pao pestphp/pest-plugin-rector --no-update --no-interaction 2>/dev/null || true
+          composer require "laravel/framework:${{ matrix.laravel }}" --no-interaction --no-update
+          composer require --dev "orchestra/testbench:${{ matrix.testbench }}" "pestphp/pest:${{ matrix.pest }}" "pestphp/pest-plugin-laravel:${{ matrix.pest }}" "pestphp/pest-plugin-type-coverage:${{ matrix.pest }}" --no-interaction --no-update
           composer update --prefer-dist --no-progress --prefer-stable --no-interaction
 
       - name: Execute tests
@@ -74,7 +79,7 @@ jobs:
 
       - name: Upload coverage
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        if: always()
+        if: success() && !env.ACT
         with:
           name: coverage-report-${{ matrix.php }}-${{ matrix.laravel }}
           path: build/logs/clover.xml
